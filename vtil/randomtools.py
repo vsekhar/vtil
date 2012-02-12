@@ -5,7 +5,6 @@ Created on Jan 14, 2012
 '''
 
 import random as _random
-from random import random
 import cPickle
 import string
 

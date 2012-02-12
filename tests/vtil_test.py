@@ -6,10 +6,11 @@ Created on Jan 14, 2012
 
 import unittest
 import collections
+import random
 from types import NotImplementedType
 
 import vtil
-from vtil import random
+from vtil import randomtools
 
 class UtilTest(unittest.TestCase):
     def test_fixed_int(self):
@@ -47,5 +48,5 @@ class PartitionTest(unittest.TestCase):
     def test_number_partitioner(self):
         h = vtil.NumberPartitioner(0, 1, 6)
         self.assertEqual(len(h), 6)
-        self.isUniform(h, 0.1, rfunc = randomtools.random)
+        self.isUniform(h, 0.1, rfunc = random.random)
 
