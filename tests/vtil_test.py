@@ -80,3 +80,64 @@ class extsortedTest(unittest.TestCase):
         sorted_data = vtil.extsorted.extsorted(data)
         s = set(a<b for a,b in pairwise(sorted_data))
         self.assertNotIn(False, s)
+
+class RangeReaderTest(unittest.TestCase):
+    def test_rangereader(self):
+        import random
+        import StringIO
+        from vtil.rangereader import RangeReader
+
+        sio = StringIO.StringIO()
+        [sio.write(random.random()) for _ in xrange(1000)]
+        size = sio.tell()
+
+        # soft end
+        sio.seek(0)
+        rr = RangeReader(sio, 20, 50)
+        assert len(rr.read()) == size-20
+        assert rr.eof()
+
+        # hard end
+        sio.seek(0)
+        rr = RangeReader(sio, 20, 50, hard_end=True)
+        assert len(rr.read()) == 50-20
+        assert rr.eof()
+
+        # rebase absolute
+        sio.seek(0)
+        rr1 = RangeReader(sio, 20, 50, rebase=False)
+        rr2 = RangeReader(sio, 20, 50, rebase=True)
+        rr1.seek(20)
+        d1 = rr1.read()
+        rr2.seek(0)
+        d2 = rr2.read()
+        assert d1 == d2
+        assert rr1.eof() and rr2.eof()
+
+        # rebase relative
+        rr1.seek(20)
+        rr1.seek(2, os.SEEK_CUR)
+        d1 = rr1.read()
+        rr2.seek(0)
+        rr2.seek(2, os.SEEK_CUR)
+        d2 = rr2.read()
+        assert d1 == d2
+        assert rr1.eof() and rr2.eof()
+
+        # no end specified
+        sio.seek(0)
+        rr = RangeReader(sio, 20, rebase=True)
+        assert len(rr.read()) == size-20
+
+        # fixed quantity read
+        rr.seek(0)
+        assert len(rr.read(5)) == 5
+
+        # seek past beginning
+        sio.seek(0)
+        rr = RangeReader(sio, 20, 50, rebase=False)
+        try:
+            rr.seek(0)
+            assert False # should never happen
+        except ValueError:
+            pass
