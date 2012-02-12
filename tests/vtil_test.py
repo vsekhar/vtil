@@ -55,18 +55,17 @@ class PartitionTest(unittest.TestCase):
 class IndexedTest(unittest.TestCase):
     def test_indexed(self):
         from vtil.indexed import IndexedKVWriter, IndexedKVReader
+        from vtil.iterator import pairwise
         import random
         tf = tempfile.TemporaryFile()
         with IndexedKVWriter(tf, reverse=True) as writer:
             for _ in xrange(20):
                 writer.write(random.random(), random.random())
         tf.seek(0)
-        print "Descending order:"
-        with IndexedKVReader(tf) as reader:
-            reader.read_index()
-            assert(len(reader) == 20)
-            for k,v in reader:
-                print k,v
+        for (k1,_),(k2,_) in pairwise(IndexedKVReader(tf)):
+            self.assertGreaterEqual(k1, k2, 'key sort failed')
+        tf.seek(0)
+        self.assertEqual(20, len(iter(IndexedKVReader(tf))), 'length does not match')
 
 class extsortedTest(unittest.TestCase):
     def test_extsorted(self):
