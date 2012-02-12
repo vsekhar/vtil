@@ -1,0 +1,8 @@
+vmesh is copyright Vivek Sekhar, 2010, and files herein are licensed 
+under the Affero General Public License version 3, the text of which can 
+be found in GNU-AGPL-3.0.tst, or any later version of the AGPL, unless 
+otherwise noted. Attribution information for vmesh is contained in the 
+AUTHORS file. 
+
+You must obey the GNU Affero General Public License V3 or later in all 
+respects for all of the code used.

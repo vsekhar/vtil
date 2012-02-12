@@ -1,0 +1,34 @@
+# Compiled files
+*.o
+*.os
+*.o.*
+*.a
+*.so
+*.so.dbg
+*.bin
+*.pyc
+*.pyo
+
+*.log
+
+# mapreduce data files
+TEST,*
+MAPREDUCE,*
+
+# temp files
+*~
+temp/
+
+# 'compiled' files and directories
+*.egg-info
+dist/
+build/
+
+# scons cruft
+.sconsign
+.sconsign.dblite
+
+# Dot files, but include .gitignore
+.*
+!.gitignore
+
