@@ -24,7 +24,7 @@ def mem_chunked(iterable, max_mem=None):
         block.append(value)
         mem_use += sys.getsizeof(value)
         averager(mem_use)
-        if max_mem is not None and mem_use + averager.value >= max_mem:
+        if max_mem is not None and mem_use + averager.value > max_mem:
             yield block
             block = []
             mem_use = 0
