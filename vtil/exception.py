@@ -25,7 +25,7 @@ def swallowedf(func, exc_type, exc_status_value=None):
 def convertedf(func, src_type, target_type, exc_status_value=None):
     def wrapper(*args, **kwargs):
         try:
-            func(*args, **kwargs)
+            return func(*args, **kwargs)
         except src_type as e:
             if exc_status_value is not None and exc_status_value != e.status:
                 raise
