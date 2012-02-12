@@ -12,6 +12,7 @@ import operator
 
 from collections import deque
 
+import vtil.exception
 from vtil.sortingpipe import sortingPipe
 
 class IndexedKVWriter(object):
@@ -63,6 +64,7 @@ class IndexedKVWriter(object):
         #self.file_obj.close()
 
 class IndexNotLoaded(Exception): pass
+class Empty(Exception): pass
 
 class IndexedKVReader(object):
     ''' Reads and returns key-value pairs from a file created with IndexedKVWriter '''
@@ -72,11 +74,8 @@ class IndexedKVReader(object):
         self._index = None
         if read_index_now: self.read_index()
     
-    def __len__(self):
-        if self._index is None:
-            raise IndexNotLoaded
-        return len(self._index)
-    
+    __len__ = vtil.exception.convertedf(lambda x:len(x._index), TypeError, IndexNotLoaded)
+
     def __enter__(self): return self
     def __exit__(self, et, ex, tb): return False
     
@@ -85,10 +84,8 @@ class IndexedKVReader(object):
             self.read_index()
         return self
     
-    def next(self):
-        try: return self.get()
-        except IndexError: raise StopIteration
-    
+    next = vtil.exception.convertedf(lambda x:x.get(), Empty, StopIteration)
+
     def read_index(self):
         count = self.unpickler.load()
         self._index = deque(maxlen=count)
@@ -99,7 +96,11 @@ class IndexedKVReader(object):
     def get(self):
         if self._index is None:
             raise IndexNotLoaded
-        key, pos = self._index.popleft() # IndexError if empty
+
+        # convert IndexError to Empty (for granular exception catching)
+        wrapped_func = vtil.exception.convertedf(self._index.popleft, IndexError, Empty)
+        key, pos = wrapped_func()
+
         pos += self._val_start # rebase
         self.file_obj.seek(pos)
         value = self.unpickler.load()
