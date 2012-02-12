@@ -50,3 +50,15 @@ class PartitionTest(unittest.TestCase):
         self.assertEqual(len(h), 6)
         self.isUniform(h, 0.1, rfunc = random.random)
 
+class extsortedTest(unittest.TestCase):
+    def test_extsorted(self):
+        import sys
+        import vtil.extsorted
+        from vtil.iterator import pairwise
+        file_size = 2 ** 20 # 1 MB
+        file_goal = 5.5
+        count = int((file_size * file_goal) / sys.getsizeof(random.random()))
+        data = (random.random() for _ in xrange(count))
+        sorted_data = vtil.extsorted.extsorted(data)
+        s = set(a<b for a,b in pairwise(sorted_data))
+        self.assertNotIn(False, s)

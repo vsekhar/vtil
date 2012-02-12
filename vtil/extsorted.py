@@ -70,17 +70,3 @@ def extsorted(iterable, key=None, reverse=False, max_mem=DEFAULT_MAX_MEM):
     
     [tf.seek(0) for tf in tempfiles]
     return sortedfilesreader(tempfiles)
-
-def pairwise(iterable):
-    "s -> (s0,s1), (s1,s2), (s2, s3), ..."
-    a, b = itertools.tee(iterable)
-    next(b, None)
-    return itertools.izip(a, b)
-
-if __name__ == '__main__':
-    import random
-    file_goal = 2.5
-    count = int((DEFAULT_MAX_MEM * file_goal) / sys.getsizeof(random.random()))
-    data = (random.random() for _ in xrange(count))
-    s = set(a<b for a,b in pairwise(extsorted(data)))
-    assert False not in s 
