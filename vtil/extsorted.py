@@ -32,11 +32,11 @@ def mem_chunked(iterable, max_mem=None):
     if block:
         yield block
 
-def sortedfilesreader(files_arg, key=None, reverse=False):
+def sortedfilesreader(files, key=None, reverse=False):
     key = key or (lambda x:x)
     wrapped_key = lambda x:key(operator.itemgetter(0)(x))
     sp = sortingpipe.sortingPipe(key=wrapped_key, reverse=reverse)
-    [sp.push((cPickle.load(tf), tf)) for tf in files_arg]
+    [sp.push((cPickle.load(tf), tf)) for tf in files]
     while sp:
         value,tf = sp.pop()
         yield value
@@ -45,7 +45,7 @@ def sortedfilesreader(files_arg, key=None, reverse=False):
         except EOFError:
             pass
 
-def extsorted(iterable, max_mem=DEFAULT_MAX_MEM, key=None, reverse=False):
+def extsorted(iterable, key=None, reverse=False, max_mem=DEFAULT_MAX_MEM):
     '''
     Generator taking an iterable and returning its sorted values. 
     
