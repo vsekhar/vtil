@@ -60,7 +60,7 @@ class IndexedKVWriter(object):
         shutil.copyfileobj(self._value_file_obj, self.file_obj) # copy values
         self._value_file_obj.close()
         self.file_obj.flush()
-        self.file_obj.close()
+        #self.file_obj.close()
 
 class IndexNotLoaded(Exception): pass
 
@@ -78,9 +78,7 @@ class IndexedKVReader(object):
         return len(self._index)
     
     def __enter__(self): return self
-    def __exit__(self, et, ex, tb):
-        self.close()
-        return False
+    def __exit__(self, et, ex, tb): return False
     
     def __iter__(self):
         if not self._index:
@@ -106,22 +104,3 @@ class IndexedKVReader(object):
         self.file_obj.seek(pos)
         value = self.unpickler.load()
         return key, value
-    
-    def close(self):
-        self.file_obj.close()
-
-if __name__ == '__main__':
-    import random
-    fileno, tfile_name = tempfile.mkstemp()
-    tfile = os.fdopen(fileno, 'w+b')
-    with IndexedKVWriter(tfile, reverse=True) as writer:
-        for _ in xrange(20):
-            writer.write(random.random(), random.random())
-    infile = open(tfile_name)
-    print "Descending order:"
-    with IndexedKVReader(infile) as reader:
-        reader.read_index()
-        assert(len(reader) == 20)
-        for k,v in reader:
-            print k,v
-    #os.remove(tfile_name)

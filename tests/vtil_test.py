@@ -7,6 +7,8 @@ Created on Jan 14, 2012
 import unittest
 import collections
 import random
+import os
+import tempfile
 from types import NotImplementedType
 
 import vtil
@@ -49,6 +51,22 @@ class PartitionTest(unittest.TestCase):
         h = vtil.NumberPartitioner(0, 1, 6)
         self.assertEqual(len(h), 6)
         self.isUniform(h, 0.1, rfunc = random.random)
+
+class IndexedTest(unittest.TestCase):
+    def test_indexed(self):
+        from vtil.indexed import IndexedKVWriter, IndexedKVReader
+        import random
+        tf = tempfile.TemporaryFile()
+        with IndexedKVWriter(tf, reverse=True) as writer:
+            for _ in xrange(20):
+                writer.write(random.random(), random.random())
+        tf.seek(0)
+        print "Descending order:"
+        with IndexedKVReader(tf) as reader:
+            reader.read_index()
+            assert(len(reader) == 20)
+            for k,v in reader:
+                print k,v
 
 class extsortedTest(unittest.TestCase):
     def test_extsorted(self):
