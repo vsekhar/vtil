@@ -33,6 +33,12 @@ def mem_chunked(iterable, max_mem=None):
         yield block
 
 def sortedfilesreader(files, key=None, reverse=False):
+    '''
+    A generator yielding values from a collection of sorted files in order.
+
+    The files must be sorted using the same *key* and *reverse* settings provided
+    here, otherwise this generator will yield erroneous results.
+    '''
     key = key or (lambda x:x)
     wrapped_key = lambda x:key(operator.itemgetter(0)(x))
     sp = sortingpipe.sortingPipe(key=wrapped_key, reverse=reverse)
