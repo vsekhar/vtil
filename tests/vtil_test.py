@@ -5,7 +5,6 @@ Created on Jan 14, 2012
 '''
 
 import unittest
-import collections
 import random
 import os
 import tempfile
@@ -14,6 +13,7 @@ from types import NotImplementedType
 import vtil
 from vtil import randomtools
 from vtil.iterator import pairwise
+from vtil.counter import Counter
 
 class UtilTest(unittest.TestCase):
     def test_fixed_int(self):
@@ -31,8 +31,8 @@ class SortingPipeTest(unittest.TestCase):
         [reverse.push(random.random()) for _ in xrange(iterations)]
         s = set(a<=b for a,b in pairwise(forward))
         s = set(a>=b for a,b in pairwise(reverse))
-        self.assertNotIn(False, forward)
-        self.assertNotIn(False, reverse)
+        self.assertTrue(False not in forward) # py2.6 has no assertNotIn
+        self.assertTrue(False not in reverse)
 
 class PartitionTest(unittest.TestCase):
     def test_partition(self):
@@ -47,10 +47,12 @@ class PartitionTest(unittest.TestCase):
         buckets = len(partitioner)
 
         expected_count = float(samples) / buckets
+        delta_count = expected_count * delta
 
-        c = collections.Counter((partitioner(rfunc()) for _ in xrange(samples)))
+        c = Counter((partitioner(rfunc()) for _ in xrange(samples)))
         for _, count in c.most_common():
-            self.assertAlmostEqual(expected_count, count, delta=expected_count*delta)
+            self.assertTrue(expected_count <= count+delta_count)
+            self.assertTrue(expected_count >= count-delta_count)
 
     def test_hash_partitioner(self):
         h = vtil.HashPartitioner(6)
@@ -78,7 +80,7 @@ class IndexedTest(unittest.TestCase):
                 writer.write(random.random(), random.random())
         tf.seek(0)
         for (k1,_),(k2,_) in pairwise(IndexedKVReader(tf)):
-            self.assertGreaterEqual(k1, k2, 'key sort failed')
+            self.assertTrue(k1 >= k2, 'key sort failed') # py2.6 has no assertGreaterEqual
         tf.seek(0)
         self.assertEqual(20, len(iter(IndexedKVReader(tf))), 'length does not match')
 
@@ -95,7 +97,7 @@ class extsortedTest(unittest.TestCase):
         sorted_data = list(extsorted(data, key=itemgetter(1), reverse=True, max_mem=file_size))
         self.assertEqual(len(sorted_data), count)
         s = set(a[1]>=b[1] for a,b in pairwise(sorted_data))
-        self.assertNotIn(False, s)
+        self.assertTrue(False not in s) # py2.6 has no assertNotIn
 
 class RangeReaderTest(unittest.TestCase):
     def test_rangereader(self):
