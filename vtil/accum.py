@@ -5,21 +5,11 @@ def make_accumulator(gen_type):
             self._last = self._a.next()
         
         def __call__(self, val=None):
-            if val is None:
-                return self._last
-            else:
-                return self.send(val)
+            self._last = self._a.send(val)
+            return self._last
         
         def __str__(self):
             return str(self._last)
-        
-        def next(self):
-            self._last = self._a.next()
-            return self._last
-        
-        def send(self, val):
-            self._last = self._a.send(val)
-            return self._last
         
         @property
         def value(self):
@@ -41,6 +31,13 @@ def Summer():
     value = 0
     while True:
         value += yield value
+
+@make_accumulator
+def Counter():
+    count = 0
+    while True:
+        yield count
+        count += 1
 
 if __name__ == '__main__':
     a = Averager()
