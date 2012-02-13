@@ -1,37 +1,13 @@
 import cPickle
 import tempfile
-import sys
-import itertools
 
 from operator import itemgetter 
 
-from vtil import accum
 from vtil import sortingpipe
+from vtil.chunk import mem_chunks
 
 MEG = 2**20
 DEFAULT_MAX_MEM = 64 * MEG
-
-def mem_chunked(iterable, max_mem=None):
-    '''
-    Generates and yields the longest lists of values from *iterable* that each
-    fit inside *max_mem* of memory. If max_mem is not specified, mem_chunked
-    yields a single list of all values in iterable.
-    '''
-    block = []
-    mem_use = 0
-    averager = accum.Averager()
-    sizeof = sys.getsizeof
-    for value in iterable:
-        block.append(value)
-        mem_use += sizeof(value)
-        averager(mem_use)
-        if max_mem is not None and mem_use + averager.value > max_mem:
-            yield block
-            block = []
-            mem_use = 0
-            averager = accum.Averager()
-    if block:
-        yield block
 
 def sortedfilesreader(files, key=None, reverse=False):
     '''
@@ -73,7 +49,7 @@ def extsorted(iterable, key=None, reverse=False, max_mem=DEFAULT_MAX_MEM):
     is 64 megabytes.
     '''
     tempfiles = [dump_objs(sorted(block, key=key, reverse=reverse))
-                 for block in mem_chunked(iterable, max_mem)]
+                 for block in mem_chunks(iterable, max_mem)]
 
     [tf.seek(0) for tf in tempfiles]
     reader = sortedfilesreader(tempfiles, key=key, reverse=reverse)
