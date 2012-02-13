@@ -1,8 +1,9 @@
 import cPickle
 import tempfile
 import heapq
+import itertools
 
-from operator import itemgetter 
+from operator import itemgetter
 
 from vtil.chunk import mem_chunks
 from vtil.pickle import PickleReader
@@ -16,7 +17,7 @@ DEFAULT_MAX_MEM = 64 * MEG
 def _sortedfilesreader(files, key=None, reverse=False):
     ' read from sorted files, in order '
     wrap, unwrap = sorting.make_wrap_funcs(key=key, reverse=reverse)
-    gens = (map(wrap, PickleReader(tf)) for tf in files)
+    gens = (itertools.imap(wrap, PickleReader(tf)) for tf in files)
     return (unwrap(obj) for obj in heapq.merge(*gens))
 
 def _dump_to_tempfile(iterable):
