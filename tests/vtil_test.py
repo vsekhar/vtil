@@ -112,14 +112,14 @@ class RangeReaderTest(unittest.TestCase):
         # soft end
         sio.seek(0)
         rr = RangeReader(sio, 20, 50)
-        assert len(rr.read()) == size-20
-        assert rr.eof()
+        self.assertEqual(len(rr.read()), size-20)
+        self.assertTrue(rr.eof())
 
         # hard end
         sio.seek(0)
         rr = RangeReader(sio, 20, 50, hard_end=True)
-        assert len(rr.read()) == 50-20
-        assert rr.eof()
+        self.assertEqual(len(rr.read()), 50-20)
+        self.assertTrue(rr.eof())
 
         # rebase absolute
         sio.seek(0)
@@ -129,8 +129,8 @@ class RangeReaderTest(unittest.TestCase):
         d1 = rr1.read()
         rr2.seek(0)
         d2 = rr2.read()
-        assert d1 == d2
-        assert rr1.eof() and rr2.eof()
+        self.assertEqual(d1, d2)
+        self.assertTrue(rr1.eof() and rr2.eof())
 
         # rebase relative
         rr1.seek(20)
@@ -139,24 +139,24 @@ class RangeReaderTest(unittest.TestCase):
         rr2.seek(0)
         rr2.seek(2, os.SEEK_CUR)
         d2 = rr2.read()
-        assert d1 == d2
-        assert rr1.eof() and rr2.eof()
+        self.assertEqual(d1, d2)
+        self.assertTrue(rr1.eof() and rr2.eof())
 
         # no end specified
         sio.seek(0)
         rr = RangeReader(sio, 20, rebase=True)
-        assert len(rr.read()) == size-20
+        self.assertEqual(len(rr.read()), size-20)
 
         # fixed quantity read
         rr.seek(0)
-        assert len(rr.read(5)) == 5
+        self.assertEqual(len(rr.read(5)), 5)
 
         # seek past beginning
         sio.seek(0)
         rr = RangeReader(sio, 20, 50, rebase=False)
         try:
             rr.seek(0)
-            assert False # should never happen
+            self.assertTrue(False) # should never happen
         except ValueError:
             pass
 
