@@ -20,9 +20,10 @@ def mem_chunked(iterable, max_mem=None):
     block = []
     mem_use = 0
     averager = accum.Averager()
+    sizeof = sys.getsizeof
     for value in iterable:
         block.append(value)
-        mem_use += sys.getsizeof(value)
+        mem_use += sizeof(value)
         averager(mem_use)
         if max_mem is not None and mem_use + averager.value > max_mem:
             yield block
@@ -38,9 +39,14 @@ def sortedfilesreader(files, key=None, reverse=False):
 
     The files must be sorted using the same *key* and *reverse* settings provided
     here, otherwise this generator will yield erroneous results.
+
+    TODO: Profiling suggests this function can be optimized. Perhaps load multiple
+    values at a time from each file, maintaining fillable caches?
     '''
-    key = key or (lambda x:x)
-    wrapped_key = lambda x:key(operator.itemgetter(0)(x))
+    if key:
+        wrapped_key = lambda x:key(itemgetter(0)(x))
+    else:
+        wrapped_key = itemgetter(0)
     sp = sortingpipe.sortingPipe(key=wrapped_key, reverse=reverse)
     [sp.push((cPickle.load(tf), tf)) for tf in files]
     while sp:
@@ -50,6 +56,11 @@ def sortedfilesreader(files, key=None, reverse=False):
             sp.push((cPickle.load(tf), tf))
         except EOFError:
             pass
+
+def dump_objs(iterable):
+    tf = tempfile.TemporaryFile()
+    [cPickle.dump(obj, tf) for obj in iterable]
+    return tf
 
 def extsorted(iterable, key=None, reverse=False, max_mem=DEFAULT_MAX_MEM):
     '''
@@ -61,12 +72,9 @@ def extsorted(iterable, key=None, reverse=False, max_mem=DEFAULT_MAX_MEM):
     Maximum memory usage (in bytes) can be provided as max_mem. The default
     is 64 megabytes.
     '''
+    tempfiles = [dump_objs(sorted(block, key=key, reverse=reverse))
+                 for block in mem_chunked(iterable, max_mem)]
 
-    tempfiles = []
-    for block in mem_chunked(iterable, max_mem):
-        tf = tempfile.TemporaryFile()
-        [cPickle.dump(obj, tf) for obj in sorted(block, key=key, reverse=reverse)]
-        tempfiles.append(tf)
-    
     [tf.seek(0) for tf in tempfiles]
-    return sortedfilesreader(tempfiles)
+    reader = sortedfilesreader(tempfiles, key=key, reverse=reverse)
+    return reader
