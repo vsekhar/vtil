@@ -17,18 +17,15 @@ def _sortedfilesreader(files, key=None, reverse=False):
     files = [(wrapper(cPickle.load(tf)), tf) for tf in files]
     heapq.heapify(files)
     value, tf = heapq.heappop(files)
-    value = wrapper.unwrap(value)
     with exception.swallowed(IndexError):
         while True:
-            yield value
+            yield wrapper.unwrap(value)
             try:
-                value = cPickle.load(tf)
+                value = wrapper(cPickle.load(tf))
             except EOFError:
                 value, tf = heapq.heappop(files)
             else:
-                value = wrapper(value)
                 value, tf = heapq.heappushpop(files, (value,tf))
-            value = wrapper.unwrap(value)
 
 def dump_to_tempfile(iterable):
     tf = tempfile.TemporaryFile()
