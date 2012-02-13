@@ -9,6 +9,7 @@ import re
 import cPickle
 from functools import partial
 from cStringIO import StringIO
+from contextlib import contextmanager
 
 from vtil import exception
 
@@ -29,29 +30,21 @@ fix_write = partial(write_re.sub, '##')
 # when reading, replace double ## with single #
 read_pattern = '##'
 read_re = re.compile(read_pattern)
-fix_read = partial(read_re.sub, '#') 
+fix_read = partial(read_re.sub, '#')
 
-class RecordWriter(object):
+class _RecordWriterWrapper(object):
     def __init__(self, stream):
         self._stream = stream
-        self._write_buffer = None
+        self.write = stream.write
 
-    def __enter__(self):
-        self._write_buffer = StringIO()
-        return self
-    
-    def __exit__(self, et, ex, tb):
-        if self._write_buffer.tell():
-            self._stream.write(SENTINEL) # start
-            cPickle.dump(self._write_buffer.tell(), self._stream, cPickle.HIGHEST_PROTOCOL) # byte length of user's original data
-            self._stream.write(fix_write(self._write_buffer.getvalue()))
-            self._write_buffer = None
-        return False
-
-    def write(self, data):
-        if not self._write_buffer:
-            raise TypeError("Must use RecordWriter as a context manager")
-        self._write_buffer.write(data)
+@contextmanager
+def RecordWriter(stream):
+    write_buffer = StringIO()
+    yield _RecordWriterWrapper(write_buffer)
+    if write_buffer.tell():
+        stream.write(SENTINEL) # start
+        cPickle.dump(write_buffer.tell(), stream, cPickle.HIGHEST_PROTOCOL) # byte length of user's original data
+        stream.write(fix_write(write_buffer.getvalue())) # data with sentinels replaced
 
 class BadBlock(Exception): pass
 
@@ -73,50 +66,21 @@ def RecordReader(stream):
     data = ''
     while True:
         m = find_sentinel(data)
-        if not m:
-            if seen_sentinel:
+        if not m: # no sentinel in current block
+            if seen_sentinel: # writing good data
                 accum.write(data)
-            data = stream.read(READ_BUFFER_SIZE)
-            if not data:
+            data = stream.read(READ_BUFFER_SIZE) # read some more
+            if not data: # no more, process what you have
                 if accum.tell():
                     with exception.swallowed(BadBlock):
                         yield verify_length(fix_read(accum.getvalue()))
                 return
-        else:
-            if seen_sentinel:
+        else: # sentinel in this block
+            if seen_sentinel: # ending a block, write it
                 accum.write(data[:m.start()])
                 with exception.swallowed(BadBlock):
                     yield verify_length(fix_read(accum.getvalue()))
                 accum = StringIO()
-            else:
+            else: # starting a block
                 seen_sentinel = True
             data = data[m.end():] # toss
-
-if __name__ == '__main__':
-    import random
-
-    stream = StringIO()
-    data = [str(random.random()) for _ in xrange(3)]
-    data.append('abc12#jeoht38#SoSooihetS#') # contains sentinel
-    # TODO: add length/checksum
-    count = len(data)
-    for i in data:
-        with RecordWriter(stream) as r:
-            r.write(i)
-
-    print 'Stream: '
-    print stream.getvalue()
-    size = stream.tell()
-    stream.seek(0, os.SEEK_SET)
-    read_data = [s for s in RecordReader(stream)]
-    print 'Original data: ', data
-    print 'RecordReader returned: ', read_data
-    print '%d records read' % len(read_data)
-    assert(len(read_data) == count)
-    assert(data == read_data)
-
-    for offset in xrange(size):
-        print 'Values starting at offset %d:' % offset
-        stream.seek(offset, os.SEEK_SET)
-        for s in RecordReader(stream):
-            print s

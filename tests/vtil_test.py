@@ -141,3 +141,43 @@ class RangeReaderTest(unittest.TestCase):
             assert False # should never happen
         except ValueError:
             pass
+
+class RecordReaderTest(unittest.TestCase):
+    def test_recordreader(self):
+        import random
+        from StringIO import StringIO
+        from vtil.records import RecordWriter, RecordReader
+
+        stream = StringIO()
+        data = [str(random.random()) for _ in xrange(3)]
+        data.append('abc12#jeoht38#SoSooihetS#') # contains sentinel
+        value_count = len(data)
+        # TODO: add length/checksum
+        count = len(data)
+        for i in data:
+            with RecordWriter(stream) as r:
+                r.write(i)
+
+        print 'Stream: '
+        print stream.getvalue()
+        size = stream.tell()
+        stream.seek(0, os.SEEK_SET)
+        read_data = [s for s in RecordReader(stream)]
+        print 'Original data: ', data
+        print 'RecordReader returned: ', read_data
+        print '%d records read' % len(read_data)
+        self.assertEqual(len(read_data), count)
+        self.assertEqual(data, read_data)
+
+        # reading from the beginning gets all values
+        stream.seek(0) 
+        values = list(RecordReader(stream))
+        self.assertEqual(value_count, len(values))
+
+        # past the beginning gets fewer values
+        last_count = len(values)
+        for offset in xrange(1, size):
+            stream.seek(offset, os.SEEK_SET)
+            values = list(RecordReader(stream))
+            self.assertTrue(len(values) == last_count or len(values) == last_count-1)
+            last_count = min(last_count, len(values))
