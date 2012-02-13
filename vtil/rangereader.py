@@ -2,18 +2,19 @@ import os
 
 class RangeReader(object):
     '''
-    A seekable file-like object that reads a range of another seekable file-like
+    A seekable file-like adaptor that reads a range of another seekable file-like
     object.
     
-    If *end* is not specified, then the end of the file is assumed.
+    If *end* is not specified, then the end of *file_obj* is assumed.
     
     If *hard_end* is True and *end* is specified, then no reads past the given
-    end are permitted. Otherwise reads past the end work, but eof() will then
-    return True.
+    end are permitted. This makes the file appear to be genuinely truncated to
+    the range given. Otherwise reads past the end work (the default), and a
+    'soft' end is indicated by eof() returning True.
     
     If *rebase* is True, then all offsets used by seek() and tell() will be
     zero-based (from the *start* position). Otherwise, the regular offsets of
-    the underlying file will be used.
+    the underlying *file_obj* will be used.
     
     Seeks or reads that would access points in the file prior to *start* are
     never permitted.
