@@ -13,11 +13,26 @@ from types import NotImplementedType
 
 import vtil
 from vtil import randomtools
+from vtil.iterator import pairwise
 
 class UtilTest(unittest.TestCase):
     def test_fixed_int(self):
         s = '0000000021415'
         self.assertEqual(s, vtil.fixed_int(int(s), len(s)))
+
+class SortingPipeTest(unittest.TestCase):
+    def test_sortingpipe(self):
+        from vtil.sortingpipe import sortingPipe
+        iterations = 100
+
+        forward = sortingPipe()
+        reverse = sortingPipe(reverse=True)
+        [forward.push(random.random()) for _ in xrange(iterations)]
+        [reverse.push(random.random()) for _ in xrange(iterations)]
+        s = set(a<=b for a,b in pairwise(forward))
+        s = set(a>=b for a,b in pairwise(reverse))
+        self.assertNotIn(False, forward)
+        self.assertNotIn(False, reverse)
 
 class PartitionTest(unittest.TestCase):
     def test_partition(self):
@@ -72,13 +87,14 @@ class extsortedTest(unittest.TestCase):
         import sys
         from operator import itemgetter
         from vtil.extsorted import extsorted
-        from vtil.iterator import pairwise
         file_size = 2 ** 20 # 1 MB
-        file_goal = 10
-        count = int((file_size * file_goal) / sys.getsizeof(random.random()))
-        data = (('a', random.random()) for _ in xrange(count))
-        sorted_data = extsorted(data, key=itemgetter(1), reverse=True)
-        s = set(a>=b for a,b in pairwise(sorted_data))
+        file_goal = 2.5
+        prototype = (1, random.random())
+        count = int((file_size * file_goal)) / sys.getsizeof(prototype)
+        data = ((i, random.random()) for i in xrange(count))
+        sorted_data = list(extsorted(data, key=itemgetter(1), reverse=True, max_mem=file_size))
+        self.assertEqual(len(sorted_data), count)
+        s = set(a[1]>=b[1] for a,b in pairwise(sorted_data))
         self.assertNotIn(False, s)
 
 class RangeReaderTest(unittest.TestCase):
@@ -158,14 +174,9 @@ class RecordReaderTest(unittest.TestCase):
             with RecordWriter(stream) as r:
                 r.write(i)
 
-        print 'Stream: '
-        print stream.getvalue()
         size = stream.tell()
         stream.seek(0, os.SEEK_SET)
         read_data = [s for s in RecordReader(stream)]
-        print 'Original data: ', data
-        print 'RecordReader returned: ', read_data
-        print '%d records read' % len(read_data)
         self.assertEqual(len(read_data), count)
         self.assertEqual(data, read_data)
 

@@ -24,6 +24,8 @@ def mem_chunks(iterable, max_mem=None):
     Generates and yields the longest lists of values from *iterable* that each
     fit inside *max_mem* of memory. If max_mem is not specified, mem_chunked
     yields a single list of all values in iterable.
+
+    List overhead is not considered.
     '''
     block = []
     mem_use = 0
@@ -31,8 +33,9 @@ def mem_chunks(iterable, max_mem=None):
     sizeof = sys.getsizeof
     for value in iterable:
         block.append(value)
-        mem_use += sizeof(value)
-        averager(mem_use)
+        size = sizeof(value)
+        mem_use += size
+        averager(size)
         if max_mem is not None and mem_use + averager.value > max_mem:
             yield block
             block = []
