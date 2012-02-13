@@ -70,14 +70,15 @@ class IndexedTest(unittest.TestCase):
 class extsortedTest(unittest.TestCase):
     def test_extsorted(self):
         import sys
-        import vtil.extsorted
+        from operator import itemgetter
+        from vtil.extsorted import extsorted
         from vtil.iterator import pairwise
         file_size = 2 ** 20 # 1 MB
-        file_goal = 5.5
+        file_goal = 10
         count = int((file_size * file_goal) / sys.getsizeof(random.random()))
-        data = (random.random() for _ in xrange(count))
-        sorted_data = vtil.extsorted.extsorted(data)
-        s = set(a<b for a,b in pairwise(sorted_data))
+        data = (('a', random.random()) for _ in xrange(count))
+        sorted_data = extsorted(data, key=itemgetter(1), reverse=True)
+        s = set(a>=b for a,b in pairwise(sorted_data))
         self.assertNotIn(False, s)
 
 class RangeReaderTest(unittest.TestCase):
