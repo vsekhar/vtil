@@ -42,10 +42,8 @@ class ThreadPool(object):
         self._inqueue.put(data)
     
     def join(self):
-        for _ in self._threads:
-            self.push(STOP)
-        for thread in self._threads:
-            thread.join()
+        [self.push(STOP) for _ in self._threads]
+        [thread.join() for thread in self._threads]
     
     def map(self, iterable):
         [self._inqueue.put(i) for i in iterable]
