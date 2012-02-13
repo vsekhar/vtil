@@ -12,7 +12,7 @@ class _SortingWrapperInner(object):
 def make_wrap_funcs(key=None, reverse=False):
     if key is not None or reverse:
         def wrap(obj): return _SortingWrapperInner(obj, key, reverse)
-        def unwrap(obj): return obj.obj
+        unwrap = operator.attrgetter('obj') 
     else:
         def wrap(obj): return obj
         def unwrap(obj): return obj
