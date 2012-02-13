@@ -11,17 +11,21 @@ from vtil import sorting
 MEG = 2**20
 DEFAULT_MAX_MEM = 64 * MEG
 
+def make_wrapper(key=None, reverse=False):
+    if key is not None or reverse:
+        def wrap(obj): return key(obj)
+
 def _sortedfilesreader(files, key=None, reverse=False):
     ' read from sorted files, in order '
-    wrapper = sorting.SortingWrapper(key=key, reverse=reverse)
-    files = [(wrapper(cPickle.load(tf)), tf) for tf in files]
+    wrap, unwrap = sorting.make_wrap_funcs(key=key, reverse=reverse)
+    files = [(wrap(cPickle.load(tf)), tf) for tf in files]
     heapq.heapify(files)
     value, tf = heapq.heappop(files)
     with exception.swallowed(IndexError):
         while True:
-            yield wrapper.unwrap(value)
+            yield unwrap(value)
             try:
-                value = wrapper(cPickle.load(tf))
+                value = wrap(cPickle.load(tf))
             except EOFError:
                 value, tf = heapq.heappop(files)
             else:

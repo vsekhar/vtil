@@ -14,7 +14,7 @@ from vtil import sorting
 class sortingPipe(object):
     def __init__(self, key=None, reverse=False):
         self._heap = []
-        self._wrapper = sorting.SortingWrapper(key=key, reverse=reverse)
+        self._wrap, self._unwrap = sorting.make_wrap_funcs(key=key, reverse=reverse)
 
     def __len__(self): return len(self._heap)
     def __bool__(self): return bool(self._heap)
@@ -24,7 +24,7 @@ class sortingPipe(object):
         except IndexError: raise StopIteration
     
     def push(self, obj):
-        heapq.heappush(self._heap, self._wrapper(obj))
+        heapq.heappush(self._heap, self._wrap(obj))
     
     def pop(self):
-        return self._wrapper.unwrap(heapq.heappop(self._heap))
+        return self._unwrap(heapq.heappop(self._heap))
