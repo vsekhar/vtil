@@ -27,11 +27,22 @@ def mem_chunks(iterable, max_mem=None):
 
     List overhead is not considered.
     '''
-    block = []
-    mem_use = 0
-    averager = accum.Averager()
+    if max_mem is None:
+        return iterable
+
+    itr = iter(iterable)
+    first_value = itr.next() # StopIteration propagates out
     sizeof = sys.getsizeof
+    block = list()
+    block.extend(itertools.islice(iterable, count-1))
+    averager = accum.Averager()
+    count_target = None
     for value in iterable:
+        if count_target is None:
+            count_target = int(max_mem / sizeof(value))
+        block.extend(itertools.islice(iterable, count_target - len(block)))
+        
+            
         block.append(value)
         size = sizeof(value)
         mem_use += size
