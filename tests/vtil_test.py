@@ -72,7 +72,6 @@ class PartitionTest(unittest.TestCase):
 class IndexedTest(unittest.TestCase):
     def test_indexed(self):
         from vtil.indexed import IndexedKVWriter, IndexedKVReader
-        from vtil.iterator import pairwise
         import random
         tf = tempfile.TemporaryFile()
         with IndexedKVWriter(tf, reverse=True) as writer:

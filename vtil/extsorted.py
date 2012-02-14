@@ -33,7 +33,8 @@ def extsorted(iterable, key=None, reverse=False, max_mem=DEFAULT_MAX_MEM):
     values than can fit in memory.
     
     Maximum memory usage (in bytes) can be provided as max_mem. The default
-    is 64 megabytes.
+    is 64 megabytes. This applies only to objects, additional memory will be
+    used for container overheads, temporaries, etc.
     '''
     tempfiles = [_dump_to_tempfile(sorted(block, key=key, reverse=reverse))
                  for block in mem_chunks(iterable, max_mem)]
