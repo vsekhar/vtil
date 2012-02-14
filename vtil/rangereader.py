@@ -33,7 +33,10 @@ class RangeReader(object):
                 n = min(n, self._end - self._file_obj.tell())
             else: # computed "read to end"
                 n = self._end - self._file_obj.tell()
-        return self._file_obj.read(n)
+        if n is not None:
+            return self._file_obj.read(n)
+        else:
+            return self._file_obj.read()
     
     def tell(self):
         if self._rebase:

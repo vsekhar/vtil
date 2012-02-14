@@ -10,8 +10,7 @@ import os
 import tempfile
 import sys
 import random
-import random
-import StringIO
+import cStringIO
 
 from operator import itemgetter
 from types import NotImplementedType
@@ -25,6 +24,8 @@ from vtil.extsorted import extsorted
 from vtil.sortingpipe import sortingPipe
 from vtil.indexed import IndexedKVWriter, IndexedKVReader
 from vtil.rangereader import RangeReader
+from vtil.records import RecordWriter, RecordReader
+from vtil.randomtools import random_string
 
 class UtilTest(unittest.TestCase):
     def test_fixed_int(self):
@@ -111,8 +112,8 @@ class extsortedTest(unittest.TestCase):
 
 class RangeReaderTest(unittest.TestCase):
     def test_rangereader(self):
-        sio = StringIO.StringIO()
-        [sio.write(random.random()) for _ in xrange(1000)]
+        sio = cStringIO.StringIO()
+        [sio.write(str(random.random())) for _ in xrange(1000)]
         size = sio.tell()
 
         # soft end, read all
@@ -190,24 +191,24 @@ class RangeReaderTest(unittest.TestCase):
 
 class RecordReaderTest(unittest.TestCase):
     def test_recordreader(self):
-        import random
-        from StringIO import StringIO
-        from vtil.records import RecordWriter, RecordReader
-
-        stream = StringIO()
-        data = [str(random.random()) for _ in xrange(3)]
+        stream = cStringIO.StringIO()
+        data = [str(random.random()) for _ in xrange(2)]
         data.append('abc12#jeoht38#SoSooihetS#') # contains sentinel
+        data.extend(random_string(8) for _ in xrange(2))
         value_count = len(data)
-        # TODO: add length/checksum
-        count = len(data)
         for i in data:
             with RecordWriter(stream) as r:
                 r.write(i)
 
         size = stream.tell()
-        stream.seek(0, os.SEEK_SET)
-        read_data = [s for s in RecordReader(stream)]
-        self.assertEqual(len(read_data), count)
+        stream.seek(0)
+        read_data = list(RecordReader(stream))
+
+        print data
+        stream.seek(0)
+        print stream.read()
+        print read_data
+        self.assertEqual(len(data), len(read_data))
         self.assertEqual(data, read_data)
 
         # reading from the beginning gets all values
