@@ -8,12 +8,24 @@ import unittest
 import random
 import os
 import tempfile
+import sys
+import random
+import cStringIO
+
+from operator import itemgetter
 from types import NotImplementedType
 
 import vtil
+
 from vtil import randomtools
-from vtil.iterator import pairwise
 from vtil.counter import Counter
+from vtil.sorting import is_sorted
+from vtil.extsorted import extsorted
+from vtil.sortingpipe import sortingPipe
+from vtil.indexed import IndexedKVWriter, IndexedKVReader
+from vtil.rangereader import RangeReader
+from vtil.records import RecordWriter, RecordReader
+from vtil.randomtools import random_string
 
 class UtilTest(unittest.TestCase):
     def test_fixed_int(self):
@@ -22,17 +34,14 @@ class UtilTest(unittest.TestCase):
 
 class SortingPipeTest(unittest.TestCase):
     def test_sortingpipe(self):
-        from vtil.sortingpipe import sortingPipe
         iterations = 100
 
         forward = sortingPipe()
         reverse = sortingPipe(reverse=True)
         [forward.push(random.random()) for _ in xrange(iterations)]
         [reverse.push(random.random()) for _ in xrange(iterations)]
-        s = set(a<=b for a,b in pairwise(forward))
-        s = set(a>=b for a,b in pairwise(reverse))
-        self.assertTrue(False not in forward) # py2.6 has no assertNotIn
-        self.assertTrue(False not in reverse)
+        self.assertTrue(is_sorted(forward))
+        self.assertTrue(is_sorted(reverse, reverse=True))
 
 class PartitionTest(unittest.TestCase):
     def test_partition(self):
@@ -71,58 +80,71 @@ class PartitionTest(unittest.TestCase):
 
 class IndexedTest(unittest.TestCase):
     def test_indexed(self):
-        from vtil.indexed import IndexedKVWriter, IndexedKVReader
-        import random
         tf = tempfile.TemporaryFile()
         with IndexedKVWriter(tf, reverse=True) as writer:
             for _ in xrange(20):
                 writer.write(random.random(), random.random())
         tf.seek(0)
-        for (k1,_),(k2,_) in pairwise(IndexedKVReader(tf)):
-            self.assertTrue(k1 >= k2, 'key sort failed') # py2.6 has no assertGreaterEqual
+        self.assertTrue(is_sorted(IndexedKVReader(tf), reverse=True, key=itemgetter(0)))
         tf.seek(0)
         self.assertEqual(20, len(iter(IndexedKVReader(tf))), 'length does not match')
 
 class extsortedTest(unittest.TestCase):
-    def test_extsorted(self):
-        import sys
-        from operator import itemgetter
-        from vtil.extsorted import extsorted
+    def test_extsorted_small(self):
+        data = list(random.random() for _ in xrange(10))
+        max_mem = sys.getsizeof(0) - 1 # too small for even one value
+        self.assertTrue(is_sorted(extsorted(data, max_mem=max_mem)))
+
+    def test_extsorted_all_at_once(self):
+        data = list(random.random() for _ in xrange(10))
+        max_mem = sys.getsizeof(data) * 2 # definitely big enough for whole list
+        self.assertTrue(is_sorted(extsorted(data, max_mem=max_mem)))
+
+    def test_extsorted_stress(self):
         file_size = 2 ** 20 # 1 MB
-        file_goal = 2.5
-        prototype = (1, random.random())
-        count = int((file_size * file_goal)) / sys.getsizeof(prototype)
+        file_count = 2.5
+        typical_size = sys.getsizeof(1, random.random())
+        count = int((file_size * file_count)) / typical_size
         data = ((i, random.random()) for i in xrange(count))
         sorted_data = list(extsorted(data, key=itemgetter(1), reverse=True, max_mem=file_size))
         self.assertEqual(len(sorted_data), count)
-        s = set(a[1]>=b[1] for a,b in pairwise(sorted_data))
-        self.assertTrue(False not in s) # py2.6 has no assertNotIn
+        self.assertTrue(is_sorted(sorted_data, key=itemgetter(1), reverse=True, expected_len=None))
 
 class RangeReaderTest(unittest.TestCase):
     def test_rangereader(self):
-        import random
-        import StringIO
-        from vtil.rangereader import RangeReader
-
-        sio = StringIO.StringIO()
-        [sio.write(random.random()) for _ in xrange(1000)]
+        sio = cStringIO.StringIO()
+        [sio.write(str(random.random())) for _ in xrange(1000)]
         size = sio.tell()
 
-        # soft end
+        # soft end, read all
         sio.seek(0)
         rr = RangeReader(sio, 20, 50)
         self.assertEqual(len(rr.read()), size-20)
         self.assertTrue(rr.eof())
 
-        # hard end
+        # soft end, read past end
+        sio.seek(0)
+        rr = RangeReader(sio, 20, 50)
+        rr.seek(45)
+        data = rr.read(25) # only 5 available
+        self.assertEqual(len(data), 25)
+
+        # hard end, read all
         sio.seek(0)
         rr = RangeReader(sio, 20, 50, hard_end=True)
         self.assertEqual(len(rr.read()), 50-20)
         self.assertTrue(rr.eof())
 
+        # hard end, truncated range read
+        sio.seek(0)
+        rr = RangeReader(sio, 20, 50, hard_end=True)
+        rr.seek(45)
+        data = rr.read(25) # only 5 available
+        self.assertEqual(len(data), 5)
+
         # rebase absolute
         sio.seek(0)
-        rr1 = RangeReader(sio, 20, 50, rebase=False)
+        rr1 = RangeReader(sio, 20, 50)
         rr2 = RangeReader(sio, 20, 50, rebase=True)
         rr1.seek(20)
         d1 = rr1.read()
@@ -150,7 +172,7 @@ class RangeReaderTest(unittest.TestCase):
         rr.seek(0)
         self.assertEqual(len(rr.read(5)), 5)
 
-        # seek past beginning
+        # absolute seek prior to beginning
         sio.seek(0)
         rr = RangeReader(sio, 20, 50, rebase=False)
         try:
@@ -159,26 +181,34 @@ class RangeReaderTest(unittest.TestCase):
         except ValueError:
             pass
 
+        # relative seek prior to beginning
+        rr.seek(20)
+        try:
+            rr.seek(-1, os.SEEK_CUR)
+            self.assertTrue(False) # should never happen
+        except ValueError:
+            pass
+
 class RecordReaderTest(unittest.TestCase):
     def test_recordreader(self):
-        import random
-        from StringIO import StringIO
-        from vtil.records import RecordWriter, RecordReader
-
-        stream = StringIO()
-        data = [str(random.random()) for _ in xrange(3)]
+        stream = cStringIO.StringIO()
+        data = [str(random.random()) for _ in xrange(2)]
         data.append('abc12#jeoht38#SoSooihetS#') # contains sentinel
+        data.extend(random_string(8) for _ in xrange(2))
         value_count = len(data)
-        # TODO: add length/checksum
-        count = len(data)
         for i in data:
             with RecordWriter(stream) as r:
                 r.write(i)
 
         size = stream.tell()
-        stream.seek(0, os.SEEK_SET)
-        read_data = [s for s in RecordReader(stream)]
-        self.assertEqual(len(read_data), count)
+        stream.seek(0)
+        read_data = list(RecordReader(stream))
+
+        print data
+        stream.seek(0)
+        print stream.read()
+        print read_data
+        self.assertEqual(len(data), len(read_data))
         self.assertEqual(data, read_data)
 
         # reading from the beginning gets all values

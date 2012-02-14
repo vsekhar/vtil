@@ -1,8 +1,6 @@
 import itertools
 import sys
 
-from vtil import accum
-
 def chunks(n, iterable):
 	"chunks(4, [1,2,3,4,5,6]) --> 1234 56"
 	itr = iter(iterable)
@@ -23,34 +21,27 @@ def mem_chunks(iterable, max_mem=None):
     '''
     Generates and yields the longest lists of values from *iterable* that each
     fit inside *max_mem* of memory. If max_mem is not specified, mem_chunked
-    yields a single list of all values in iterable.
+    yields a single list of all values in *iterable*.
 
-    List overhead is not considered.
+    List overhead is not considered. If a single value is larger than *max_mem*
+    it is still returned, but in its own list.
     '''
-    if max_mem is None:
-        return iterable
-
-    itr = iter(iterable)
-    first_value = itr.next() # StopIteration propagates out
+    mem_use = 0
     sizeof = sys.getsizeof
     block = list()
-    block.extend(itertools.islice(iterable, count-1))
-    averager = accum.Averager()
-    count_target = None
     for value in iterable:
-        if count_target is None:
-            count_target = int(max_mem / sizeof(value))
-        block.extend(itertools.islice(iterable, count_target - len(block)))
-        
-            
-        block.append(value)
-        size = sizeof(value)
-        mem_use += size
-        averager(size)
-        if max_mem is not None and mem_use + averager.value > max_mem:
-            yield block
-            block = []
-            mem_use = 0
-            averager = accum.Averager()
+        if max_mem is not None:
+            size = sizeof(value)
+            if mem_use + size <= max_mem:
+                block.append(value)
+                mem_use += size
+            elif block:
+                yield block
+                block = [value]
+                mem_use = size
+            else:
+                yield [value]
+        else:
+            block.append(value)
     if block:
         yield block

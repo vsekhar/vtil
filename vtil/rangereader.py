@@ -27,16 +27,16 @@ class RangeReader(object):
         self._hard_end = hard_end
         file_obj.seek(start, os.SEEK_SET)
     
-    def read(self, n=-1):
-        if n < 0:
-            if self._hard_end and self._end is not None:
-                return self._file_obj.read(self._end - self._file_obj.tell())
-            else:
-                return self._file_obj.read()
-        else:
-            if self._hard_end and self._end is not None:
+    def read(self, n=None):
+        if self._hard_end and self._end is not None:
+            if n is not None and n >= 0: # checked "read range"
                 n = min(n, self._end - self._file_obj.tell())
+            else: # computed "read to end"
+                n = self._end - self._file_obj.tell()
+        if n is not None:
             return self._file_obj.read(n)
+        else:
+            return self._file_obj.read()
     
     def tell(self):
         if self._rebase:
