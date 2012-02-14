@@ -28,7 +28,6 @@ def write_random(num, fobj):
 lists = (string.uppercase, string.lowercase, string.digits, string.punctuation, string.whitespace)
 char_bins = dict()
 for l in product((True, False), repeat=5):
-    print l
     gen = imap(itemgetter(1), ifilter(itemgetter(0), izip(l, lists)))
     char_bins[l] = ''.join(gen)
 
