@@ -3,7 +3,7 @@ from cStringIO import StringIO
 class TransactionWriter(object):
     '''
     Allows undoing writes against a file_obj that does not support seek or
-    truncate.
+    truncate by buffering writes until a commit() or context manager exit.
     
     Usage:
         sio = StringIO()
@@ -43,7 +43,7 @@ class TransactionWriter(object):
             self._file_obj.write(data)
     
     def mem_use(self):
-        return self._txnbuffer.tell()if self._txnbuffer is not None else 0
+        return self._txnbuffer.tell() if self._txnbuffer is not None else 0
 
 class TransactionReader(object):
     '''
