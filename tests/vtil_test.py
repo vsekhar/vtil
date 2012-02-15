@@ -10,10 +10,10 @@ import os
 import tempfile
 import sys
 import random
-import cStringIO
 
 from operator import itemgetter
 from types import NotImplementedType
+from cStringIO import StringIO
 
 import vtil
 
@@ -112,7 +112,7 @@ class extsortedTest(unittest.TestCase):
 
 class RangeReaderTest(unittest.TestCase):
     def test_rangereader(self):
-        sio = cStringIO.StringIO()
+        sio = StringIO()
         [sio.write(str(random.random())) for _ in xrange(1000)]
         size = sio.tell()
 
@@ -191,7 +191,7 @@ class RangeReaderTest(unittest.TestCase):
 
 class RecordReaderTest(unittest.TestCase):
     def test_recordreader(self):
-        stream = cStringIO.StringIO()
+        stream = StringIO()
         data = [str(random.random()) for _ in xrange(2)]
         data.append('abc12#jeoht38#SoSooihetS#') # contains sentinel
         data.extend(random_string(8) for _ in xrange(2))
