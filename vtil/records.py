@@ -16,22 +16,26 @@ from contextlib import contextmanager
 from collections import deque
 
 from vtil import exception
+from vtil.transaction import TransactionReader
 
 SENTINEL = '#S'
 KB = 2 ** 10
 READ_BUFFER_SIZE = 32 * KB
 
 # when scanning look for #S, but NOT ##S
+# find_sentinel('abc12##Sjeoht38#SoSo') --> match(16, 18)
 sentinel_pattern = '(?<!#)#S' # look for a non-duplicated #, then S
 sentinel_re = re.compile(sentinel_pattern)
 find_sentinel = sentinel_re.search
 
 # when writing replace single # with double ##
+# fix_write('abc#123#S##11') --> 'abc##123##S####11'
 write_pattern = '#'
 write_re = re.compile(write_pattern)
 fix_write = partial(write_re.sub, '##')
 
 # when reading, replace double ## with single #
+# fix_read('abc##123##S####11') --> 'abc#123#S##11'
 read_pattern = '##'
 read_re = re.compile(read_pattern)
 fix_read = partial(read_re.sub, '#')
@@ -46,26 +50,27 @@ def RecordWriter(stream):
     buffer = StringIO()
     yield _write_only(buffer)
     if buffer.tell():
-        data = buffer.getvalue()
+        buffer = buffer.getvalue()
+        buffer = fix_write(buffer) # replace sentinels
         stream.write(SENTINEL)
-        cPickle.dump(buffer.tell(), stream, cPickle.HIGHEST_PROTOCOL) # byte length of user's original (unfixed) data
-        stream.write(fix_write(data)) # data with sentinels replaced
-        cPickle.dump(binascii.crc32(data), stream, cPickle.HIGHEST_PROTOCOL)
+        cPickle.dump(len(buffer), stream, cPickle.HIGHEST_PROTOCOL) # byte length of fixed data
+        stream.write(buffer)
+        cPickle.dump(binascii.crc32(buffer), stream, cPickle.HIGHEST_PROTOCOL)
 
 class BadBlock(Exception): pass
 
-def verify_length(block):
-    fobj = StringIO(block)
+def read_block(stream):
     try:
-        stated_length = cPickle.load(fobj)
-    except (ValueError, IndexError, cPickle.UnpicklingError):
+        length = cPickle.load(stream)
+        data = stream.read(length)
+        crc = cPickle.load(stream)
+    except EOFError, cPickle.PickleError:
         raise BadBlock
-    data = fobj.read()
-    if len(data) != stated_length:
-        raise BadBlock
-    return data
-
-class CancelTransaction(Exception): pass
+    else:
+        if crc == binascii.crc32(data):
+            return data
+        else:
+            raise BadBlock
 
 class FileTee(object):
     def __init__(self, *files):
@@ -102,7 +107,7 @@ class LoggedReader(object):
         self._buffer = StringIO()
     def reset(self): self.clear()
 
-def RecordReader(stream):
+def RecordReader2(stream):
     at_beginning = True
     reader = PreReader(stream)
     while True:
@@ -115,13 +120,13 @@ def RecordReader(stream):
             length = cPickle.load(logged_reader)
             data = logged_reader.read(length)
             crc = cPickle.load(logged_reader)
-            if length = len(data) and crc == binascii.crc32(data):
+            if length == len(data) and crc == binascii.crc32(data):
                 yield data
             else:
-                pre
+                pass
         reader.unread(pre_load[1:])
 
-def RecordReader2(stream):
+def RecordReader(stream):
     ' Read one record '
     accum = StringIO()
     seen_sentinel = False
