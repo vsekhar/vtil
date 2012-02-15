@@ -1,6 +1,27 @@
 from cStringIO import StringIO
 
 class TransactionWriter(object):
+    '''
+    Allows undoing writes against a file_obj that does not support seek or
+    truncate.
+    
+    Usage:
+        sio = StringIO()
+        writer = TransactionWriter(sio)
+        with writer:
+            writer.write('123')
+            writer.write('456')
+        sio.getvalue() # ''
+        with writer:
+            writer.write('78')
+            writer.commit()
+        sio.getvalue() # '78'
+        with writer:
+            writer.write('abc')
+            writer.commit()
+            writer.write('xyz')
+        sio.getvalue() # '78abc'
+    '''
     def __init__(self, file_obj):
         self._file_obj = file_obj
         self._txnbuffer = None
@@ -28,7 +49,8 @@ class TransactionReader(object):
     '''
     Allows undoing reads against a file_obj that does not support seek.
     
-    Use as:
+    Usage:
+    
         sio = String()
         sio.write('1234567890')
         sio.seek(0)
