@@ -25,6 +25,7 @@ from vtil.sortingpipe import sortingPipe
 from vtil.indexed import IndexedKVWriter, IndexedKVReader
 from vtil.rangereader import RangeReader
 from vtil.records import RecordWriter, RecordReader
+from vtil.transaction import TransactionReader, TransactionWriter
 from vtil.randomtools import random_string
 
 class UtilTest(unittest.TestCase):
@@ -188,6 +189,55 @@ class RangeReaderTest(unittest.TestCase):
             self.assertTrue(False) # should never happen
         except ValueError:
             pass
+
+class TransactionTest(unittest.TestCase):
+    def test_transaction_writer(self):
+        sio = StringIO()
+        writer = TransactionWriter(sio)
+        with writer:
+            writer.write('123')
+            writer.write('456')
+            self.assertEqual(sio.getvalue(), '')
+            self.assertEqual(writer.mem_use(), 6)
+        self.assertEqual(sio.getvalue(), '')
+        self.assertEqual(writer.mem_use(), 0)
+        with writer:
+            writer.write('78')
+            self.assertEqual(writer.mem_use(), 2)
+            writer.commit()
+            self.assertEqual(writer.mem_use(), 0)
+        self.assertEqual(sio.getvalue(), '78')
+        self.assertEqual(writer.mem_use(), 0)
+        with writer:
+            writer.write('abc')
+            writer.commit()
+            self.assertEqual(sio.getvalue(), '78abc')
+            writer.write('xyz')
+            self.assertEqual(sio.getvalue(), '78abc')
+            writer.commit()
+            self.assertEqual(sio.getvalue(), '78abcxyz')
+        self.assertEqual(sio.getvalue(), '78abcxyz')
+
+    def test_transaction_reader(self):
+        sio = StringIO()
+        sio.write('1234567890')
+        sio.seek(0)
+        reader = TransactionReader(sio)
+        with reader:
+            self.assertEqual(reader.read(2), '12')
+            self.assertEqual(reader.read(5), '34567')
+        self.assertEqual(reader.mem_use(), 7)
+        with reader:
+            self.assertEqual(reader.read(2), '12')
+            self.assertEqual(reader.mem_use(), 7)
+            self.assertEqual(reader.read(5), '34567')
+            self.assertEqual(reader.read(2), '89')
+            reader.commit()
+        self.assertEqual(reader.mem_use(), 0)
+        with reader:
+            self.assertEqual(reader.read(), '0')
+            reader.commit()
+        self.assertEqual(reader.mem_use(), 0)
 
 class RecordReaderTest(unittest.TestCase):
     def test_recordreader(self):
