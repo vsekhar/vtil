@@ -84,20 +84,19 @@ class TransactionReader(object):
             shutil.copyfileobj(self._buffer, new_buffer)
             self._buffer = new_buffer
 
+    def _read_source(self, *args):
+        new_data = self._file_obj.read(*args)
+        self._buffer.write(new_data)
+        return new_data
+
     def read(self, n=None):
         if n is None:
-            bdata = self._buffer.read()
-            new_data = self._file_obj.read()
-            self._buffer.write(new_data)
-            return bdata + new_data
+            return self._buffer.read() + self._read_source()
         else:
-            bdata = self._buffer.read(n)
-            if len(bdata) < n:
-                new_data = self._file_obj.read(n-len(bdata))
-                self._buffer.write(new_data)
-                return bdata + new_data
-            else:
-                return bdata
+            ret = self._buffer.read(n)
+            if len(ret) < n:
+                ret += self._read_source(n-len(ret))
+            return ret
 
     def readline(self):
         data = self._buffer.readline()
