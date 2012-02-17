@@ -312,3 +312,10 @@ class RecordReaderTest(unittest.TestCase):
             values = list(RecordReader(stream))
             self.assertTrue(len(values) == last_count or len(values) == last_count-1)
             last_count = min(last_count, len(values))
+
+        # truncated at both ends
+        stream.seek(0)
+        ranger = RangeReader(stream, start=1, end=size-1, rebase=True, hard_end=True)
+        read_data = list(RecordReader(ranger))
+        print read_data
+        self.assertEqual(len(read_data), 3)

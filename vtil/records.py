@@ -64,7 +64,7 @@ def read_block(stream):
         length = cPickle.load(stream)
         data = stream.read(length)
         crc = cPickle.load(stream)
-    except cPickle.UnpicklingError:
+    except (EOFError, cPickle.UnpicklingError):
         raise BadBlock
     else:
         if crc == binascii.crc32(data) and length == len(data):
