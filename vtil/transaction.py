@@ -76,13 +76,13 @@ class TransactionReader(object):
         return False
 
     def commit(self, n=None):
-        pos = self._buffer.tell()
         if n is None:
-            n = pos
-        self._buffer.seek(n, os.SEEK_SET)
-        new_buffer = StringIO()
-        shutil.copyfileobj(self._buffer, new_buffer)
-        self._buffer = new_buffer
+            self._buffer = StringIO()
+        else:
+            self._buffer.seek(n, os.SEEK_SET)
+            new_buffer = StringIO()
+            shutil.copyfileobj(self._buffer, new_buffer)
+            self._buffer = new_buffer
 
     def read(self, n=None):
         if n is None:
@@ -101,11 +101,11 @@ class TransactionReader(object):
 
     def readline(self):
         data = self._buffer.readline()
-        if data[-1] == '\n':
-            return data
-        else:
+        if not data or data[-1] != '\n':
             return data + self._file_obj.readline()
-    
+        else:
+            return data
+
     def mem_use(self):
         pos = self._buffer.tell()
         self._buffer.seek(0, os.SEEK_END)

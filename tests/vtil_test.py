@@ -283,9 +283,12 @@ class TransactionTest(unittest.TestCase):
             self.assertEqual(reader.read(2), 'cd')
         with reader:
             self.assertEqual(reader.read(2), 'bc') # '0a' was committed
-        self.assertEqual(reader.mem_use(), 3) # just 'b' left
+        self.assertEqual(reader.mem_use(), 3)
 
         # read to end
+        with reader:
+            self.assertEqual(reader.read(), 'bcdefg')
+        self.assertEqual(reader.mem_use(), 6)
         with reader:
             self.assertEqual(reader.read(), 'bcdefg')
             reader.commit()

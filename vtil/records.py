@@ -59,19 +59,6 @@ def RecordWriter(stream):
 
 class BadBlock(Exception): pass
 
-def read_block(stream):
-    try:
-        length = cPickle.load(stream)
-        data = stream.read(length)
-        crc = cPickle.load(stream)
-    except (EOFError, cPickle.UnpicklingError):
-        raise BadBlock
-    else:
-        if crc == binascii.crc32(data) and length == len(data):
-            return data
-        else:
-            raise BadBlock
-
 def RecordReader(stream):
     at_beginning = True
     reader = TransactionReader(stream)
@@ -82,11 +69,15 @@ def RecordReader(stream):
                 break # eof
             if find_sentinel(sen_check) is not None:
                 try:
-                    data = read_block(reader)
-                except BadBlock:
+                    length = cPickle.load(reader)
+                    data = reader.read(length)
+                    crc = cPickle.load(reader)
+                    if crc == binascii.crc32(data) and length == len(data):
+                        reader.commit()
+                        yield fix_read(data)
+                    else:
+                        raise BadBlock
+                except (EOFError, cPickle.UnpicklingError, BadBlock):
                     reader.commit(1)
-                else:
-                    reader.commit()
-                    yield fix_read(data)
             else:
                 reader.commit(1)
