@@ -81,7 +81,7 @@ class TransactionReader(object):
             n = pos
         self._buffer.seek(n, os.SEEK_SET)
         new_buffer = StringIO()
-        shutil.copyfileobj(self._buffer, new_buffer, length=pos-n)
+        shutil.copyfileobj(self._buffer, new_buffer)
         self._buffer = new_buffer
 
     def read(self, n=None):
