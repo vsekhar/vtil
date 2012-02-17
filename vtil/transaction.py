@@ -1,3 +1,5 @@
+import os
+import shutil
 from cStringIO import StringIO
 
 class TransactionWriter(object):
@@ -65,33 +67,48 @@ class TransactionReader(object):
     '''
     def __init__(self, file_obj):
         self._file_obj = file_obj
-        self._preread = ''
-        self._txnbuffer = StringIO()
+        self._buffer = StringIO()
     
     def __enter__(self): pass
     def __exit__(self, et, ev, tb):
         # cache un-committed data for later reads
-        self._preread = self._preread + self._txnbuffer.getvalue()
-        self._txnbuffer = StringIO()
+        self._buffer.seek(0, os.SEEK_SET)
         return False
 
-    def commit(self):
-        self._txnbuffer = StringIO()
+    def commit(self, n=None):
+        pos = self._buffer.tell()
+        if n is None:
+            n = pos
+        self._buffer.seek(n, os.SEEK_SET)
+        new_buffer = StringIO()
+        shutil.copyfileobj(self._buffer, new_buffer, length=pos-n)
+        self._buffer = new_buffer
 
     def read(self, n=None):
         if n is None:
-            data = self._preread + self._file_obj.read()
-            self._txnbuffer.write(data)
+            bdata = self._buffer.read()
+            new_data = self._file_obj.read()
+            self._buffer.write(new_data)
+            return bdata + new_data
+        else:
+            bdata = self._buffer.read(n)
+            if len(bdata) < n:
+                new_data = self._file_obj.read(n-len(bdata))
+                self._buffer.write(new_data)
+                return bdata + new_data
+            else:
+                return bdata
+
+    def readline(self):
+        data = self._buffer.readline()
+        if data[-1] == '\n':
             return data
         else:
-            pdata = self._preread[:n]
-            self._preread = self._preread[n:]
-            fdata = self._file_obj.read(n-len(pdata))
-            self._txnbuffer.write(pdata + fdata)
-            return pdata + fdata
+            return data + self._file_obj.readline()
     
     def mem_use(self):
-        ret = len(self._preread)
-        try: ret += self._txnbuffer.tell()
-        except AttributeError: pass
-        return ret
+        pos = self._buffer.tell()
+        self._buffer.seek(0, os.SEEK_END)
+        size = self._buffer.tell()
+        self._buffer.seek(pos, os.SEEK_SET)
+        return size

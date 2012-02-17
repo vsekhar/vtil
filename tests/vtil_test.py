@@ -10,6 +10,7 @@ import os
 import tempfile
 import sys
 import random
+import cPickle
 
 from operator import itemgetter
 from types import NotImplementedType
@@ -245,13 +246,17 @@ class TransactionTest(unittest.TestCase):
 
     def test_transaction_reader(self):
         sio = StringIO()
-        sio.write('1234567890')
+        sio.write('1234567890abcdefg')
         sio.seek(0)
         reader = TransactionReader(sio)
+
+        # no commit, unwind read
         with reader:
             self.assertEqual(reader.read(2), '12')
             self.assertEqual(reader.read(5), '34567')
         self.assertEqual(reader.mem_use(), 7)
+
+        # commit
         with reader:
             self.assertEqual(reader.read(2), '12')
             self.assertEqual(reader.mem_use(), 7)
@@ -259,45 +264,49 @@ class TransactionTest(unittest.TestCase):
             self.assertEqual(reader.read(2), '89')
             reader.commit()
         self.assertEqual(reader.mem_use(), 0)
+
+        # partial commit
         with reader:
-            self.assertEqual(reader.read(), '0')
+            self.assertEqual(reader.read(3), '0ab')
+            self.assertEqual(reader.mem_use(), 3)
+            reader.commit(2)
+            self.assertEqual(reader.mem_use(), 1) # just 'b' left
+            self.assertEqual(reader.read(2), 'cd')
+        with reader:
+            self.assertEqual(reader.read(2), 'bc') # '0a' was committed
+        self.assertEqual(reader.mem_use(), 3) # just 'b' left
+
+        # read to end
+        with reader:
+            self.assertEqual(reader.read(), 'bcdefg')
             reader.commit()
         self.assertEqual(reader.mem_use(), 0)
+
+        # eof
         with reader:
             self.assertEqual(reader.read(3), '') # EOF
             self.assertEqual(reader.read(), '')
 
 class RecordReaderTest(unittest.TestCase):
-    # @unittest.skip('RecordReader not yet ready') # not in 2.6...
-    # def test_recordreader(self):
-    def recordreader(self):
+    def test_recordreader(self):
         stream = StringIO()
-        data = [str(random.random()) for _ in xrange(2)]
-        data.append('abc12#jeoht38#SoSooihetS#') # contains sentinel
-        data.extend(random_string(8) for _ in xrange(2))
-        value_count = len(data)
-        for i in data:
+        write_data = [cPickle.dumps(random.random()) for _ in xrange(2)]
+        write_data.append('abc12#jeoht38#SoSooihetS#') # contains sentinel
+        write_data.extend(random_string(8) for _ in xrange(2))
+        for i in write_data:
             with RecordWriter(stream) as r:
-                r.write(i)
+                r.write(i) # write each obj as its own record
 
         size = stream.tell()
-        stream.seek(0)
-        read_data = list(RecordReader(stream))
-
-        print data
-        stream.seek(0)
-        print stream.read()
-        print read_data
-        self.assertEqual(len(data), len(read_data))
-        self.assertEqual(data, read_data)
 
         # reading from the beginning gets all values
-        stream.seek(0) 
-        values = list(RecordReader(stream))
-        self.assertEqual(value_count, len(values))
+        stream.seek(0)
+        read_data = list(RecordReader(stream))
+        self.assertEqual(len(write_data), len(read_data))
+        self.assertEqual(write_data, read_data)
 
         # past the beginning gets fewer values
-        last_count = len(values)
+        last_count = len(read_data)
         for offset in xrange(1, size):
             stream.seek(offset, os.SEEK_SET)
             values = list(RecordReader(stream))
