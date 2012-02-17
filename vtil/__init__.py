@@ -5,7 +5,6 @@ import string
 import collections
 import itertools
 
-from sortingpipe import sortingPipe
 from threadpool import ThreadPool
 from partition import Partitioner, HashPartitioner, StringPartitioner, NumberPartitioner
 from indexed import IndexedKVWriter, IndexedKVReader

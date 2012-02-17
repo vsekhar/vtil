@@ -13,7 +13,7 @@ import operator
 from collections import deque
 
 import vtil.exception
-from vtil.sortingpipe import sortingPipe
+from vtil.sorting import sortingPipe
 
 class IndexedKVWriter(object):
     ''' Writes (cPickles) key value pairs while also building an index, which is itself written upon close().

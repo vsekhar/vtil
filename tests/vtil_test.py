@@ -19,9 +19,7 @@ import vtil
 
 from vtil import randomtools
 from vtil.counter import Counter
-from vtil.sorting import is_sorted
-from vtil.extsorted import extsorted
-from vtil.sortingpipe import sortingPipe
+from vtil.sorting import is_sorted, sortingPipe, extsorted
 from vtil.indexed import IndexedKVWriter, IndexedKVReader
 from vtil.rangereader import RangeReader
 from vtil.records import RecordWriter, RecordReader
