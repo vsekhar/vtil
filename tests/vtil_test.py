@@ -25,6 +25,7 @@ from vtil.rangereader import RangeReader
 from vtil.records import RecordWriter, RecordReader
 from vtil.transaction import TransactionReader, TransactionWriter
 from vtil.randomtools import random_string
+from vtil.partition import Partitioner, StringPartitioner, HashPartitioner, NumberPartitioner
 
 class UtilTest(unittest.TestCase):
     def test_fixed_int(self):
@@ -44,7 +45,7 @@ class SortingPipeTest(unittest.TestCase):
 
 class PartitionTest(unittest.TestCase):
     def test_partition(self):
-        p = vtil.Partitioner(6)
+        p = Partitioner(6)
         self.assertEqual(6, len(p))
         self.assertRaises(NotImplementedError, p, 'abc123')
 
@@ -63,17 +64,17 @@ class PartitionTest(unittest.TestCase):
             self.assertTrue(expected_count >= count-delta_count)
 
     def test_hash_partitioner(self):
-        h = vtil.HashPartitioner(6)
+        h = HashPartitioner(6)
         self.assertEqual(len(h), 6)
         self.isUniform(h, 0.1)
 
     def test_string_partitioner(self):
-        h = vtil.StringPartitioner(6)
+        h = StringPartitioner(6)
         self.assertEqual(len(h), 6)
         self.isUniform(h, 0.2)
     
     def test_number_partitioner(self):
-        h = vtil.NumberPartitioner(0, 1, 6)
+        h = NumberPartitioner(0, 1, 6)
         self.assertEqual(len(h), 6)
         self.isUniform(h, 0.1, rfunc = random.random)
 

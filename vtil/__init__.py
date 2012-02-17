@@ -1,14 +1,7 @@
 __version__ = '0.1'
 
 import sys
-import string
-import collections
 import itertools
-
-from threadpool import ThreadPool
-from partition import Partitioner, HashPartitioner, StringPartitioner, NumberPartitioner
-from indexed import IndexedKVWriter, IndexedKVReader
-from records import RecordWriter, RecordReader
 
 def fixed_int(value, fixed_size = sys.getsizeof(int()) * 2):
     ' Return an integer as a string of fixed length, pre-padding with zeros if needed '
@@ -20,4 +13,8 @@ def fixed_int(value, fixed_size = sys.getsizeof(int()) * 2):
     return prefix+s
 
 def wrap(iterable, start_idx, how_many):
+    '''
+    Read from a finite iterable starting at *start_idx* (zero-based), and looping
+    until *how_many* items are read.
+    '''
     return itertools.islice(itertools.cycle(iterable), start_idx, start_idx + how_many, 1)
