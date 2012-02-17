@@ -63,7 +63,12 @@ class TransactionReader(object):
             data4 = reader.read(2) # '12'
             reader.commit()
         with reader:
-            data5 = reader.read(2) # '34' 
+            data5 = reader.read(2) # '34'
+            data6 = reader.read(2) # '56'
+            reader.commit(2) # commit only first two bytes read
+            data7 = reader.read(2) # '78'
+        with reader:
+            data8 = reader.read(2) # '78'
     '''
     def __init__(self, file_obj):
         self._file_obj = file_obj

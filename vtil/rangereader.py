@@ -17,7 +17,8 @@ class RangeReader(object):
     the underlying *file_obj* will be used.
     
     Seeks or reads that would access points in the file prior to *start* are
-    never permitted.
+    never permitted. If *start* is beyond the end of *file_obj*, all reads will
+    return an empty string indicating EOF.
     '''
     def __init__(self, file_obj, start, end=None, rebase=False, hard_end=False):
         if end is not None and end < start:
