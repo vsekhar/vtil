@@ -20,6 +20,8 @@ class RangeReader(object):
     never permitted.
     '''
     def __init__(self, file_obj, start, end=None, rebase=False, hard_end=False):
+        if end is not None and end < start:
+            raise ValueError('RangeReader: end (%d) cannot be before start (%d)' % (end, start))
         self._file_obj = file_obj
         self._start = start
         self._end = end

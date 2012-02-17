@@ -214,6 +214,15 @@ class RangeReaderTest(unittest.TestCase):
         except ValueError:
             pass
 
+        # empty range
+        sio.seek(0)
+        rr = RangeReader(sio, 20, 20, rebase=True, hard_end=True)
+        self.assertEqual(rr.read(), '')
+
+        # backwards range
+        sio.seek(0)
+        self.assertRaises(ValueError, RangeReader, sio, 20, 15)
+
 class TransactionTest(unittest.TestCase):
     def test_transaction_writer(self):
         sio = StringIO()
@@ -313,9 +322,11 @@ class RecordReaderTest(unittest.TestCase):
             self.assertTrue(len(values) == last_count or len(values) == last_count-1)
             last_count = min(last_count, len(values))
 
-        # truncated at both ends
+        # truncated at both ends, shrinking window
         stream.seek(0)
-        ranger = RangeReader(stream, start=1, end=size-1, rebase=True, hard_end=True)
-        read_data = list(RecordReader(ranger))
-        print read_data
-        self.assertEqual(len(read_data), 3)
+        last_count = len(read_data)
+        for offset in xrange(1, size/2):
+            ranger = RangeReader(stream, start=offset, end=size-offset, rebase=True, hard_end=True)
+            values = list(RecordReader(ranger))
+            self.assertTrue(len(values) <= last_count)
+            last_count = min(last_count, len(values))
