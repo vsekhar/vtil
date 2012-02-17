@@ -32,6 +32,19 @@ class UtilTest(unittest.TestCase):
         s = '0000000021415'
         self.assertEqual(s, vtil.fixed_int(int(s), len(s)))
 
+    def test_wrap_around(self):
+        from vtil import wrap_around
+        l = xrange(7)
+        self.assertEqual([0,1,2], list(wrap_around(l, 0, 3))) # start
+        self.assertEqual([3,4,5], list(wrap_around(l, 3, 3))) # mid
+        self.assertEqual([5,6,0], list(wrap_around(l, 5, 3))) # wrap
+
+        self.assertEqual([6,0,1,2,3,4,5,6,0,1,2,3],
+                         list(wrap_around(l, 6, 12))) # multi-wrap
+
+        self.assertEqual(list(wrap_around(xrange(7), 4, 25)),
+                         list(wrap_around(xrange(7), 18, 25))) # periodicity
+
 class SortingPipeTest(unittest.TestCase):
     def test_sortingpipe(self):
         iterations = 100

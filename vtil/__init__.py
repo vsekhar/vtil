@@ -12,7 +12,7 @@ def fixed_int(value, fixed_size = sys.getsizeof(int()) * 2):
     assert(len(prefix+s) == fixed_size)
     return prefix+s
 
-def wrap(iterable, start_idx, how_many):
+def wrap_around(iterable, start_idx, how_many):
     '''
     Read from a finite iterable starting at *start_idx* (zero-based), and looping
     until *how_many* items are read.
