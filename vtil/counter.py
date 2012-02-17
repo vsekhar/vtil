@@ -12,5 +12,5 @@ except ImportError:
                 self._dict[item] += 1
 
         def most_common(self):
-            for k,v in sorted(self._dict.iteritems(), key=itemgetter(1)):
+            for k,v in sorted(self._dict.iteritems(), key=itemgetter(1), reverse=True):
                 yield k,v

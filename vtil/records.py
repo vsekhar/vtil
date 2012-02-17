@@ -79,9 +79,8 @@ def RecordReader(stream):
         with reader:
             sen_check = reader.read(len(SENTINEL))
             if not sen_check:
-                break
-            m = find_sentinel(sen_check)
-            if m is not None: # found sentinel
+                break # eof
+            if find_sentinel(sen_check) is not None:
                 try:
                     data = read_block(reader)
                 except BadBlock:
