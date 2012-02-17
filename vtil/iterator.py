@@ -6,6 +6,13 @@ import sys
 from vtil import accum
 from vtil import exception
 
+def wrap_around(iterable, start_idx, how_many):
+    '''
+    Read from a finite iterable starting at *start_idx* (zero-based), and looping
+    until *how_many* items are read.
+    '''
+    return itertools.islice(itertools.cycle(iterable), start_idx, start_idx + how_many, 1)
+
 def pairwise(iterable):
     "s -> (s0,s1), (s1,s2), (s2, s3), ..."
     a, b = itertools.tee(iterable)

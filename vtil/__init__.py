@@ -11,10 +11,3 @@ def fixed_int(value, fixed_size = sys.getsizeof(int()) * 2):
     prefix = ''.join(['0' for _ in xrange(fixed_size- len(s))])
     assert(len(prefix+s) == fixed_size)
     return prefix+s
-
-def wrap_around(iterable, start_idx, how_many):
-    '''
-    Read from a finite iterable starting at *start_idx* (zero-based), and looping
-    until *how_many* items are read.
-    '''
-    return itertools.islice(itertools.cycle(iterable), start_idx, start_idx + how_many, 1)

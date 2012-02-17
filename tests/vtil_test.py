@@ -26,14 +26,15 @@ from vtil.records import RecordWriter, RecordReader
 from vtil.transaction import TransactionReader, TransactionWriter
 from vtil.randomtools import random_string
 from vtil.partition import Partitioner, StringPartitioner, HashPartitioner, NumberPartitioner
+from vtil.iterator import wrap_around, pairwise
 
 class UtilTest(unittest.TestCase):
     def test_fixed_int(self):
         s = '0000000021415'
         self.assertEqual(s, vtil.fixed_int(int(s), len(s)))
 
+class IteratorTest(unittest.TestCase):
     def test_wrap_around(self):
-        from vtil import wrap_around
         l = xrange(7)
         self.assertEqual([0,1,2], list(wrap_around(l, 0, 3))) # start
         self.assertEqual([3,4,5], list(wrap_around(l, 3, 3))) # mid
@@ -44,6 +45,10 @@ class UtilTest(unittest.TestCase):
 
         self.assertEqual(list(wrap_around(xrange(7), 4, 25)),
                          list(wrap_around(xrange(7), 18, 25))) # periodicity
+
+    def test_pairwise(self):
+        l = xrange(3)
+        self.assertEqual([(0,1), (1,2)], [x for x in pairwise(l)])
 
 class SortingPipeTest(unittest.TestCase):
     def test_sortingpipe(self):
