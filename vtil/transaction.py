@@ -3,7 +3,7 @@ from cStringIO import StringIO
 class TransactionWriter(object):
     '''
     Allows undoing writes against a file_obj that does not support seek or
-    truncate by buffering writes until a commit() or context manager exit.
+    truncate by buffering writes until a commit(). No commit == no write to file_obj.
     
     Usage:
         sio = StringIO()
@@ -50,18 +50,16 @@ class TransactionReader(object):
     Allows undoing reads against a file_obj that does not support seek.
     
     Usage:
-    
-        sio = String()
-        sio.write('1234567890')
+        sio = String('1234567890')
         sio.seek(0)
         reader = TransactionReader(sio)
         with reader:
             data1 = reader.read(2) # '12'
             data2 = reader.read(5) # '34567'
             data3 = reader.read() # '890'
-            raise TransactionReader.Cancel # 'undoes' all reads since entry
         with reader:
             data4 = reader.read(2) # '12'
+            reader.commit()
         with reader:
             data5 = reader.read(2) # '34' 
     '''
@@ -72,7 +70,7 @@ class TransactionReader(object):
     
     def __enter__(self): pass
     def __exit__(self, et, ev, tb):
-        # cache data for later reads
+        # cache un-committed data for later reads
         self._preread = self._preread + self._txnbuffer.getvalue()
         self._txnbuffer = StringIO()
         return False

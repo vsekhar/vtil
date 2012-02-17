@@ -263,6 +263,9 @@ class TransactionTest(unittest.TestCase):
             self.assertEqual(reader.read(), '0')
             reader.commit()
         self.assertEqual(reader.mem_use(), 0)
+        with reader:
+            self.assertEqual(reader.read(3), '') # EOF
+            self.assertEqual(reader.read(), '')
 
 class RecordReaderTest(unittest.TestCase):
     # @unittest.skip('RecordReader not yet ready') # not in 2.6...
