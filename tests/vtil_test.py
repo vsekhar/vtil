@@ -50,6 +50,12 @@ class IteratorTest(unittest.TestCase):
         l = xrange(3)
         self.assertEqual([(0,1), (1,2)], [x for x in pairwise(l)])
 
+class CounterTest(unittest.TestCase):
+    def test_Counter(self):
+        l = [1,1,2,3,5]
+        c = Counter(l)
+        self.assertEqual([(1,2), (2,1), (3,1), (5,1)], list(c.most_common()))
+
 class SortingPipeTest(unittest.TestCase):
     def test_sortingpipe(self):
         iterations = 100
