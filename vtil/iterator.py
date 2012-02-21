@@ -11,7 +11,10 @@ def wrap_around(iterable, start_idx, how_many):
     Read from a finite iterable starting at *start_idx* (zero-based), and looping
     until *how_many* items are read.
     '''
-    return itertools.islice(itertools.cycle(iterable), start_idx, start_idx + how_many, 1)
+    return itertools.islice(itertools.cycle(iterable),
+                            start_idx,
+                            start_idx + how_many,
+                            1)
 
 def pairwise(iterable):
     "s -> (s0,s1), (s1,s2), (s2, s3), ..."
@@ -55,6 +58,8 @@ def threaded(iterable, max_count=None, max_mem=None):
     This is useful for wrapping iterators that perform IO. Though the benefit is
     small since it introduces pickling overhead (in the queue communication between
     threads). So the IO being wrapped should be very slow (e.g. network, not disk).
+    
+    TODO: Tests
     '''
     q = Queue.Queue(maxsize=max_count)
     if max_mem is None:
