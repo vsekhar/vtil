@@ -12,19 +12,6 @@ from itertools import ifilter, product, imap, izip
 
 from operator import itemgetter
 
-def chunkgen(num, chunksize):
-    ''' Yield chunk counts up to total of num '''
-    cur = num
-    while cur:
-        y = min(cur, chunksize)
-        yield y
-        cur -= y
-
-def write_random(num, fobj):
-    [cPickle.dump(_random.random(), fobj, cPickle.HIGHEST_PROTOCOL)
-        for count in chunkgen(num, 50)
-            for _ in xrange(count)]
-
 lists = (string.uppercase, string.lowercase, string.digits, string.punctuation, string.whitespace)
 char_bins = dict()
 for l in product((True, False), repeat=5):
