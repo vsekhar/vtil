@@ -99,11 +99,13 @@ class PartitionTest(unittest.TestCase):
         h = StringPartitioner(6)
         self.assertEqual(len(h), 6)
         self.isUniform(h, 0.2)
+        self.assertRaises(ValueError, StringPartitioner, 10**10)
     
     def test_number_partitioner(self):
         h = NumberPartitioner(0, 1, 6)
         self.assertEqual(len(h), 6)
         self.isUniform(h, 0.1, rfunc = random.random)
+        self.assertRaises(ValueError, h.partition, 10**10)
 
 class IndexedTest(unittest.TestCase):
     def test_indexed(self):
