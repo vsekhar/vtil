@@ -59,6 +59,13 @@ class CounterTest(unittest.TestCase):
         c = Counter(l)
         self.assertEqual([(1,2), (2,1), (3,1), (5,1)], list(c.most_common()))
 
+class SortingTest(unittest.TestCase):
+    def test_is_sorted(self):
+        self.assertTrue(is_sorted([1,2,3,4,5]))
+        self.assertTrue(is_sorted([1,2,3,4,5], expected_len=5))
+        self.assertFalse(is_sorted([1,2,3,2]))
+        self.assertFalse(is_sorted([1,2,3,4,5], expected_len=1))
+
 class SortingPipeTest(unittest.TestCase):
     def test_sortingpipe(self):
         iterations = 100
