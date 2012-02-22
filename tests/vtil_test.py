@@ -22,7 +22,7 @@ import vtil
 from vtil import randomtools
 from vtil.counter import Counter
 from vtil.sorting import is_sorted, sortingPipe, extsorted
-from vtil.indexed import IndexedKVWriter, IndexedKVReader
+from vtil.indexed import IndexedKVWriter, IndexedKVReader, IndexNotLoaded
 from vtil.rangereader import RangeReader
 from vtil.records import RecordWriter, RecordReader, SENTINEL
 from vtil.transaction import TransactionReader, TransactionWriter
@@ -112,6 +112,8 @@ class IndexedTest(unittest.TestCase):
             for _ in xrange(20):
                 writer.write(random.random(), random.random())
         tf.seek(0)
+        ikvr = IndexedKVReader(tf)
+        self.assertRaises(IndexNotLoaded, ikvr.get)
         self.assertTrue(is_sorted(IndexedKVReader(tf), reverse=True, key=itemgetter(0)))
         tf.seek(0)
         self.assertEqual(20, len(iter(IndexedKVReader(tf))), 'length does not match')
