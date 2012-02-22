@@ -33,6 +33,7 @@ class UtilTest(unittest.TestCase):
     def test_fixed_int(self):
         s = '0000000021415'
         self.assertEqual(s, vtil.fixed_int(int(s), len(s)))
+        self.assertRaises(ValueError, vtil.fixed_int, int(s), 1)
 
 class IteratorTest(unittest.TestCase):
     def test_wrap_around(self):
