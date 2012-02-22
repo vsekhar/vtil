@@ -252,7 +252,8 @@ class TransactionTest(unittest.TestCase):
             self.assertEqual(sio.getvalue(), '78abcxyz')
             self.assertEqual(writer.mem_use(), 0)
             writer.write('blah')
-        self.assertEqual(sio.getvalue(), '78abcxyz')
+        writer.write('outoftransaction')
+        self.assertEqual(sio.getvalue(), '78abcxyzoutoftransaction')
 
     def test_transaction_reader(self):
         sio = StringIO()
