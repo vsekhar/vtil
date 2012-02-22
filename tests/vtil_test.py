@@ -11,6 +11,7 @@ import tempfile
 import sys
 import random
 import cPickle
+import binascii
 
 from operator import itemgetter
 from types import NotImplementedType
@@ -23,7 +24,7 @@ from vtil.counter import Counter
 from vtil.sorting import is_sorted, sortingPipe, extsorted
 from vtil.indexed import IndexedKVWriter, IndexedKVReader
 from vtil.rangereader import RangeReader
-from vtil.records import RecordWriter, RecordReader
+from vtil.records import RecordWriter, RecordReader, SENTINEL
 from vtil.transaction import TransactionReader, TransactionWriter
 from vtil.randomtools import random_string
 from vtil.partition import Partitioner, StringPartitioner, HashPartitioner, NumberPartitioner
@@ -356,3 +357,20 @@ class RecordReaderTest(unittest.TestCase):
             values = list(RecordReader(ranger))
             self.assertTrue(len(values) <= last_count)
             last_count = min(last_count, len(values))
+
+    def test_bad_record(self):
+        sio = StringIO()
+        pre_data = [1,1,2,3,5]
+        post_data = [8,13,21]
+        for i in pre_data:
+            with RecordWriter(sio) as r:
+                r.write(str(i))
+        sio.write(SENTINEL + cPickle.dumps(20)) # fake record
+        sio.write(random_string(20))
+        sio.write(cPickle.dumps(binascii.crc32(''))) # wrong CRC
+        for i in post_data:
+            with RecordWriter(sio) as r:
+                r.write(str(i))
+        sio.seek(0)
+        read_data = [int(s) for s in RecordReader(sio)]
+        self.assertEqual(read_data, [1,1,2,3,5,8,13,21])
