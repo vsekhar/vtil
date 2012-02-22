@@ -62,8 +62,8 @@ class RangeReader(object):
             return self._file_obj.tell() >= self._end
         else:
             check = self._file_obj.read(1)
-            self._file_obj.seek(-1, os.SEEK_CUR)
-            return bool(check)
-    
-    def close(self):
-        self._file_obj.close()
+            if check:
+                self._file_obj.seek(-1, os.SEEK_CUR)
+                return False
+            else:
+                return True

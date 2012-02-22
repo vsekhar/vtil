@@ -157,6 +157,7 @@ class RangeReaderTest(unittest.TestCase):
         # soft end, read all
         sio.seek(0)
         rr = RangeReader(sio, 20, 50)
+        self.assertEqual(rr.tell(), 20)
         self.assertEqual(len(rr.read()), size-20)
         self.assertTrue(rr.eof())
 
@@ -184,6 +185,8 @@ class RangeReaderTest(unittest.TestCase):
         sio.seek(0)
         rr1 = RangeReader(sio, 20, 50)
         rr2 = RangeReader(sio, 20, 50, rebase=True)
+        self.assertEqual(rr1.tell(), 20)
+        self.assertEqual(rr2.tell(), 0)
         rr1.seek(20)
         d1 = rr1.read()
         rr2.seek(0)
@@ -204,7 +207,9 @@ class RangeReaderTest(unittest.TestCase):
         # no end specified
         sio.seek(0)
         rr = RangeReader(sio, 20, rebase=True)
+        self.assertFalse(rr.eof())
         self.assertEqual(len(rr.read()), size-20)
+        self.assertTrue(rr.eof())
 
         # fixed quantity read
         rr.seek(0)
