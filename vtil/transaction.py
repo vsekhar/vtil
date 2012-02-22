@@ -106,7 +106,9 @@ class TransactionReader(object):
     def readline(self):
         data = self._buffer.readline()
         if not data or data[-1] != '\n':
-            return data + self._file_obj.readline()
+            src_line = self._file_obj.readline()
+            self._buffer.write(src_line)
+            return data + src_line
         else:
             return data
 

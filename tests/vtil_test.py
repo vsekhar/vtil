@@ -306,6 +306,23 @@ class TransactionTest(unittest.TestCase):
             self.assertEqual(reader.read(3), '') # EOF
             self.assertEqual(reader.read(), '')
 
+        # newline and read-line
+        sio = StringIO()
+        sio.write('abc123\nanotherline\nlastlinewith no eof')
+        sio.seek(0)
+        reader = TransactionReader(sio)
+        with reader:
+            self.assertEqual(reader.readline(), 'abc123\n')
+            reader.commit()
+        with reader:
+            self.assertEqual(reader.readline(), 'anotherline\n')
+        with reader:
+            self.assertEqual(reader.readline(), 'anotherline\n')
+            self.assertEqual(reader.readline(), 'lastlinewith no eof')
+            reader.commit()
+        with reader:
+            self.assertEqual(reader.readline(), '')
+
 class RecordReaderTest(unittest.TestCase):
     def test_recordreader(self):
         stream = StringIO()
