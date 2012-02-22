@@ -6,8 +6,7 @@ import operator
 
 from functools import partial
 
-from vtil.iterator import pairwise, counted_all
-from vtil.chunk import mem_chunks
+from vtil.iterator import pairwise, counted_all, mem_chunks
 from vtil.pickle import PickleReader
 
 MEG = 2**20
