@@ -290,7 +290,6 @@ class TransactionTest(unittest.TestCase):
             self.assertEqual(reader.read(2), 'bc')
             self.assertEqual(reader.mem_use(), 3)
         self.assertEqual(reader.mem_use(), 3)
-            
 
         # read to end
         with reader:
