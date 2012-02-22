@@ -22,6 +22,19 @@ def pairwise(iterable):
     next(b, None)
     return itertools.izip(a, b)
 
+def _counted_all_inner(iterable):
+    ' kludge: insert a string so sum() will raise TypeError '
+    return ((1 if bool(i) else 'FAIL') for i in iterable)
+
+def counted_all(iterable, expected_len=None):
+    try:
+        s = sum(_counted_all_inner(iterable))
+    except TypeError:
+        return False
+    else:
+        if expected_len is None or s == expected_len: return True
+        else: return False
+
 class _STOPTYPE(object): pass
 _STOP = _STOPTYPE()
 

@@ -6,7 +6,7 @@ import operator
 
 from functools import partial
 
-from vtil.iterator import pairwise
+from vtil.iterator import pairwise, counted_all
 from vtil.chunk import mem_chunks
 from vtil.pickle import PickleReader
 
@@ -30,19 +30,6 @@ def make_wrap_funcs(key=None, reverse=False):
         def wrap(obj): return obj
         def unwrap(obj): return obj
     return wrap, unwrap
-
-def _counted_all_inner(iterable):
-    ' kludge: insert a string so sum() will raise TypeError '
-    return ((1 if bool(i) else 'FAIL') for i in iterable)
-
-def counted_all(iterable, expected_len=None):
-    try:
-        s = sum(_counted_all_inner(iterable))
-    except TypeError:
-        return False
-    else:
-        if expected_len is None or s == expected_len: return True
-        else: return False
 
 def is_sorted(iterable, key=lambda x:x, reverse=False, expected_len=None):
     ' checks if an iterable is sorted (consumes the iterable) '
