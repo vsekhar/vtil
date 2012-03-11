@@ -24,7 +24,7 @@ from vtil.counter import Counter
 from vtil.sorting import is_sorted, sortingPipe, extsorted
 from vtil.indexed import IndexedKVWriter, IndexedKVReader, IndexNotLoaded
 from vtil.rangereader import RangeReader
-from vtil.records import RecordWriter, RecordReader, SENTINEL
+from vtil.records import RecordWriter, RecordReader, RecordReadError, SENTINEL
 from vtil.transaction import TransactionReader, TransactionWriter
 from vtil.randomtools import random_string
 from vtil.partition import Partitioner, StringPartitioner, HashPartitioner, NumberPartitioner
@@ -381,11 +381,11 @@ class RecordReaderTest(unittest.TestCase):
         last_count = len(read_data)
         for offset in xrange(1, size/2):
             ranger = RangeReader(stream, start=offset, end=size-offset, rebase=True, hard_end=True)
-            values = list(RecordReader(ranger))
+            values = list(RecordReader(ranger, tolerate_subsequent_error=True))
             self.assertTrue(len(values) <= last_count)
             last_count = min(last_count, len(values))
 
-    def test_bad_record(self):
+    def test_pseudo_record(self):
         sio = StringIO()
         pre_data = [1,1,2,3,5]
         post_data = [8,13,21]
@@ -399,5 +399,31 @@ class RecordReaderTest(unittest.TestCase):
             with RecordWriter(sio) as r:
                 r.write(str(i))
         sio.seek(0)
-        read_data = [int(s) for s in RecordReader(sio)]
+        read_data = [int(s) for s in RecordReader(sio, tolerate_subsequent_error=True)]
         self.assertEqual(read_data, [1,1,2,3,5,8,13,21])
+
+    def check_partial_read(self, reader, expected_values):
+        results = []
+        try:
+            for record in reader:
+                results.append(record)
+        except RecordReadError:
+            self.assertEqual(len(results), expected_values)
+        else:
+            self.assertTrue(False, str(len(results)))
+
+    def test_error_modes(self):
+        sio = StringIO()
+        sio.write('a#Sgarbagedata')
+        with RecordWriter(sio) as r:
+            r.write('123')
+        sio.write('garbage#Sdata2')
+        with RecordWriter(sio) as r:
+            r.write('abc')
+        sio.write('#S1fi3')
+        sio.seek(0)
+        self.check_partial_read(RecordReader(sio, tolerate_pre_error=False), 0)
+        sio.seek(0)
+        self.check_partial_read(RecordReader(sio), 1)
+        sio.seek(0)
+        self.assertEqual(len(list(RecordReader(sio, tolerate_subsequent_error=True))), 2)

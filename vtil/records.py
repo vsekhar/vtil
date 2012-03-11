@@ -57,27 +57,33 @@ def RecordWriter(stream):
         stream.write(buffer)
         cPickle.dump(binascii.crc32(buffer), stream, cPickle.HIGHEST_PROTOCOL)
 
-class BadBlock(Exception): pass
+class _CRCFail(Exception): pass
+class _NoSentinel(Exception): pass
+class RecordReadError(Exception): pass
 
-def RecordReader(stream):
-    at_beginning = True
+def RecordReader(stream, tolerate_pre_error=True, tolerate_subsequent_error=False):
+    got_first = False
     reader = TransactionReader(stream)
     while True:
         with reader:
             sen_check = reader.read(len(SENTINEL))
             if not sen_check:
                 break # eof
-            if find_sentinel(sen_check) is not None:
-                try:
-                    length = cPickle.load(reader)
-                    data = reader.read(length)
-                    crc = cPickle.load(reader)
-                    if crc == binascii.crc32(data) and length == len(data):
-                        reader.commit()
-                        yield fix_read(data)
-                    else:
-                        raise BadBlock
-                except (EOFError, cPickle.UnpicklingError, BadBlock):
+            try:
+                if find_sentinel(sen_check) is None:
+                    raise _NoSentinel
+                length = cPickle.load(reader)
+                data = reader.read(length)
+                crc = cPickle.load(reader)
+                if crc != binascii.crc32(data) or length != len(data):
+                    raise _CRCFail
+                reader.commit()
+                got_first = True
+                yield fix_read(data)
+            except (EOFError, cPickle.UnpicklingError, _NoSentinel, _CRCFail):
+                if not got_first and not tolerate_pre_error:
+                    raise RecordReadError
+                elif got_first and not tolerate_subsequent_error:
+                    raise RecordReadError
+                else:
                     reader.commit(1)
-            else:
-                reader.commit(1)
