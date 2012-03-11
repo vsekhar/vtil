@@ -339,6 +339,17 @@ class TransactionTest(unittest.TestCase):
         with reader:
             self.assertEqual(reader.readline(), '')
 
+        # read a lot, roll-back, read a little, commit all, verify
+        sio.seek(0)
+        reader = TransactionReader(sio)
+        with reader:
+            reader.read(10)
+        self.assertEqual(reader.mem_use(), 10)
+        with reader:
+            reader.read(2)
+            reader.commit()
+        self.assertEqual(reader.mem_use(), 8)
+
 class RecordReaderTest(unittest.TestCase):
     def test_recordreader(self):
         stream = StringIO()

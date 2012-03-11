@@ -82,12 +82,16 @@ class TransactionReader(object):
 
     def commit(self, n=None):
         if n is None:
-            self._buffer = StringIO()
+            new_buffer = StringIO()
+            shutil.copyfileobj(self._buffer, new_buffer)
+            self._buffer = new_buffer
         else:
+            pos = self._buffer.tell()
             self._buffer.seek(n, os.SEEK_SET)
             new_buffer = StringIO()
             shutil.copyfileobj(self._buffer, new_buffer)
             self._buffer = new_buffer
+            new_buffer.seek(pos-n, os.SEEK_SET)
 
     def _read_source(self, *args):
         new_data = self._file_obj.read(*args)
