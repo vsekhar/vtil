@@ -96,8 +96,9 @@ def RecordReader(stream, tolerate_pre_error=True, tolerate_subsequent_error=Fals
                 data_hash = cPickle.load(reader)
                 if data_hash != hash(data) or length != len(data):
                     raise _HashFail
+                data = fix_read(data)
                 reader.commit()
                 got_first = True
-                yield fix_read(data)
+                yield data
             except (EOFError, cPickle.UnpicklingError, _HashFail):
                 DumpedData(got_first, tolerate_pre_error, tolerate_subsequent_error)
