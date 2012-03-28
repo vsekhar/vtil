@@ -41,6 +41,18 @@ class RangeReader(object):
         else:
             return self._file_obj.read()
     
+    def readline(self):
+        if self._hard_end and self._end is not None:
+            bytes_left = self._end - self._file_obj.tell()
+            if bytes_left > 0:
+                line = self._file_obj.readline()
+                self._file_obj.seek(min(bytes_left-len(line), 0), os.SEEK_CUR)
+                return line[:bytes_left]
+            else:
+                return ''
+        else:
+            return self._file_obj.readline()
+
     def tell(self):
         if self._rebase:
             return self._file_obj.tell() - self._start

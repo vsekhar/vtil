@@ -11,7 +11,6 @@ import tempfile
 import sys
 import random
 import cPickle
-import binascii
 
 from operator import itemgetter
 from types import NotImplementedType
@@ -379,11 +378,14 @@ class RecordReaderTest(unittest.TestCase):
         # truncated at both ends, shrinking window
         stream.seek(0)
         last_count = len(read_data)
+        value_counts = set()
         for offset in xrange(1, size/2):
             ranger = RangeReader(stream, start=offset, end=size-offset, rebase=True, hard_end=True)
             values = list(RecordReader(ranger, tolerate_subsequent_error=True))
             self.assertTrue(len(values) <= last_count)
+            value_counts.add(len(values))
             last_count = min(last_count, len(values))
+        self.assertEqual(len(value_counts), 4)
 
     def test_pseudo_record(self):
         sio = StringIO()
@@ -394,7 +396,7 @@ class RecordReaderTest(unittest.TestCase):
                 r.write(str(i))
         sio.write(SENTINEL + cPickle.dumps(20)) # fake record
         sio.write(random_string(20))
-        sio.write(cPickle.dumps(binascii.crc32(''))) # wrong CRC
+        sio.write(cPickle.dumps(hash(''))) # wrong hash
         for i in post_data:
             with RecordWriter(sio) as r:
                 r.write(str(i))

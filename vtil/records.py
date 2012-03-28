@@ -9,7 +9,6 @@ import re
 import cPickle
 import tempfile
 import shutil
-import binascii
 from functools import partial
 from cStringIO import StringIO
 from contextlib import contextmanager
@@ -55,35 +54,50 @@ def RecordWriter(stream):
         stream.write(SENTINEL)
         cPickle.dump(len(buffer), stream, cPickle.HIGHEST_PROTOCOL) # byte length of fixed data
         stream.write(buffer)
-        cPickle.dump(binascii.crc32(buffer), stream, cPickle.HIGHEST_PROTOCOL)
+        cPickle.dump(hash(buffer), stream, cPickle.HIGHEST_PROTOCOL)
 
-class _CRCFail(Exception): pass
+class _HashFail(Exception): pass
 class _NoSentinel(Exception): pass
 class RecordReadError(Exception): pass
 
+def DumpedData(got_first, tolerate_pre_error, tolerate_subsequent_error):
+    if not got_first and not tolerate_pre_error:
+        raise RecordReadError
+    elif got_first and not tolerate_subsequent_error:
+        raise RecordReadError
+    else:
+        return
+ 
 def RecordReader(stream, tolerate_pre_error=True, tolerate_subsequent_error=False):
     got_first = False
     reader = TransactionReader(stream)
     while True:
+        # wind reader to just past first sentinel
+        while True:
+            with reader:
+                block = reader.read(READ_BUFFER_SIZE)
+                if not block:
+                    return # eof
+                match = find_sentinel(block)
+                if not match:
+                    DumpedData(got_first, tolerate_pre_error, tolerate_subsequent_error)
+                    reader.commit()
+                else:
+                    if match.start() > 0:
+                        DumpedData(got_first, tolerate_pre_error, tolerate_subsequent_error)
+                    reader.commit(match.end())
+                    break
+
+        # do the read
         with reader:
-            sen_check = reader.read(len(SENTINEL))
-            if not sen_check:
-                break # eof
             try:
-                if find_sentinel(sen_check) is None:
-                    raise _NoSentinel
                 length = cPickle.load(reader)
                 data = reader.read(length)
-                crc = cPickle.load(reader)
-                if crc != binascii.crc32(data) or length != len(data):
-                    raise _CRCFail
+                data_hash = cPickle.load(reader)
+                if data_hash != hash(data) or length != len(data):
+                    raise _HashFail
                 reader.commit()
                 got_first = True
                 yield fix_read(data)
-            except (EOFError, cPickle.UnpicklingError, _NoSentinel, _CRCFail):
-                if not got_first and not tolerate_pre_error:
-                    raise RecordReadError
-                elif got_first and not tolerate_subsequent_error:
-                    raise RecordReadError
-                else:
-                    reader.commit(1)
+            except (EOFError, cPickle.UnpicklingError, _HashFail):
+                DumpedData(got_first, tolerate_pre_error, tolerate_subsequent_error)
